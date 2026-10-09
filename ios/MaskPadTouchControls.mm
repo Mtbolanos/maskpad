@@ -1854,3 +1854,8 @@ int MaskPad_GetNativeHudTouchAlpha(int alpha) {
     }
     return std::clamp(static_cast<int>(alpha * sTouchControlsOpacity.load() + 0.5f), 0, 255);
 }
+
+// libultraship's GUI reports menu visibility through a port-neutral hook.
+extern "C" void ShipIOS_SetTouchControlsMenuVisible(int visible) {
+    MaskPad_SetTouchControlsMenuVisible(visible);
+}

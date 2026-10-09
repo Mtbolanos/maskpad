@@ -34,9 +34,8 @@ apply_patch_once() {
 
 apply_patch_once "$SOURCE" "$ROOT/patches/2ship-ios.patch"
 # libultraship-ios.patch includes SDL 2.32.10 scene startup (apps built with the
-# iOS 27 SDK need it to open); the scenes patch upgrades checkouts made before it.
-apply_patch_once "$SOURCE/libultraship" "$ROOT/patches/libultraship-ios.patch" \
-    "$ROOT/patches/libultraship-uikit-scenes.patch"
+# iOS 27 SDK need it to open). It is the same maintained patch HarkinianPad uses.
+apply_patch_once "$SOURCE/libultraship" "$ROOT/patches/libultraship-ios.patch"
 apply_patch_once "$SOURCE/ZAPDTR" "$ROOT/patches/zapdtr-ios.patch"
 
 mkdir -p "$SOURCE/CMake" "$SOURCE/mm/ios"

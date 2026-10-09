@@ -50,7 +50,7 @@ Install it with:
 ```sh
 xcrun simctl install booted \
   build-ios-simulator/mm/Release-iphonesimulator/MaskPad.app
-xcrun simctl launch booted com.chrissotraidis.maskpad
+xcrun simctl launch booted cl.mtbolanoss.maskpad
 ```
 
 Run the opt-in touch/editor UI suite on representative devices with:

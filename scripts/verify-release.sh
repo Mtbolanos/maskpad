@@ -51,7 +51,7 @@ if [ -n "$ARTIFACT" ]; then
     test -x "$APP/MaskPad"
     test "$(plutil -extract CFBundleDisplayName raw "$APP/Info.plist")" = "MaskPad"
     test "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" = \
-        "${MASKPAD_BUNDLE_ID:-com.chrissotraidis.maskpad}"
+        "${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpad}"
     test -s "$APP/2ship.o2r"
     unzip -tq "$APP/2ship.o2r" >/dev/null
     if unzip -Z1 "$APP/2ship.o2r" |

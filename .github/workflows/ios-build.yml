@@ -39,6 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Select the newest installed Xcode
+        run: |
+          newest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$newest" ]; then sudo xcode-select -s "$newest/Contents/Developer"; fi
+          xcodebuild -version
+
       - name: Install host archive-build dependencies
         run: >-
           brew install cmake ninja pkgconf sdl2 glew nlohmann-json libpng
@@ -70,6 +76,15 @@ jobs:
           scripts/package-unsigned-ipa.sh
           scripts/verify-release.sh
 
+      # Personal test build: a workflow artifact, not a release.
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MaskPad-unsigned-ipa
+          path: artifacts/*.ipa
+          if-no-files-found: error
+          retention-days: 30
+
   simulator-tests:
     name: ROM-free Simulator UI
     runs-on: macos-15
@@ -78,6 +93,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Select the newest installed Xcode
+        run: |
+          newest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$newest" ]; then sudo xcode-select -s "$newest/Contents/Developer"; fi
+          xcodebuild -version
 
       - name: Install host archive-build dependencies
         run: >-
