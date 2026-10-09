@@ -69,7 +69,7 @@ index 73779aab6..df49f83ec 100644
          Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetGyro()->GetGyroMapping();
      if (mapping != nullptr) {
 diff --git a/mm/2s2h/BenGui/BenMenu.cpp b/mm/2s2h/BenGui/BenMenu.cpp
-index f568c665e..3952024d8 100644
+index f568c665e..4f81dde26 100644
 --- a/mm/2s2h/BenGui/BenMenu.cpp
 +++ b/mm/2s2h/BenGui/BenMenu.cpp
 @@ -20,6 +20,9 @@
@@ -82,7 +82,7 @@ index f568c665e..3952024d8 100644
  
  #include <fast/Fast3dGui.h>
  #include <fast/Fast3dWindow.h>
-@@ -549,9 +552,19 @@ void BenMenu::AddSettings() {
+@@ -549,9 +552,33 @@ void BenMenu::AddSettings() {
      path.column = SECTION_COLUMN_1;
      AddSidebarEntry("Settings", "Graphics", 3);
      AddWidget(path, "Graphics Options", WIDGET_SEPARATOR_TEXT);
@@ -97,12 +97,37 @@ index f568c665e..3952024d8 100644
 +                     .DefaultValue(false)
 +                     .Tooltip("Renders at the screen's full pixel resolution instead of a third of it. Sharper, "
 +                              "but much heavier on the GPU, battery and temperature. Internal Resolution "
-+                              "multiplies on top of this."));
++                              "multiplies on top of this.\n\n"
++                              "The FPS target is not changed. If the game can't hold it at this resolution, enable "
++                              "Lock at 60 FPS below."));
++    AddWidget(path, "Lock at 60 FPS", WIDGET_CVAR_CHECKBOX)
++        .CVar("gSettings.IOS.NativeResolutionLock60")
++        .PreFunc([](WidgetInfo& info) {
++            if (mBenMenu->disabledMap.at(DISABLE_FOR_NATIVE_RESOLUTION_OFF).active)
++                info.activeDisables.push_back(DISABLE_FOR_NATIVE_RESOLUTION_OFF);
++        })
++        .Options(CheckboxOptions()
++                     .DefaultValue(false)
++                     .Tooltip("Only applies while Native Screen Resolution is enabled. Locks interpolation at 60 FPS "
++                              "and locks the FPS slider below, which keeps its value for when the lock is off.\n\n"
++                              "Turning Native Screen Resolution off keeps this choice, and it applies again when "
++                              "Native Screen Resolution is turned back on."));
 +#endif
      AddWidget(path, "Internal Resolution: %.0f%%", WIDGET_CVAR_SLIDER_FLOAT)
          .CVar(CVAR_INTERNAL_RESOLUTION)
          .Callback([](WidgetInfo& info) {
-@@ -614,7 +627,9 @@ void BenMenu::AddSettings() {
+@@ -605,6 +632,10 @@ void BenMenu::AddSettings() {
+         .PreFunc([](WidgetInfo& info) {
+             if (mBenMenu->disabledMap.at(DISABLE_FOR_MATCH_REFRESH_RATE_ON).active)
+                 info.activeDisables.push_back(DISABLE_FOR_MATCH_REFRESH_RATE_ON);
++#ifdef __IOS__
++            if (mBenMenu->disabledMap.at(DISABLE_FOR_NATIVE_RESOLUTION_LOCK_60_ON).active)
++                info.activeDisables.push_back(DISABLE_FOR_NATIVE_RESOLUTION_LOCK_60_ON);
++#endif
+         })
+         .Options(IntSliderOptions().Min(20).Max(360).DefaultValue(20).Tooltip(
+             "Uses Matrix Interpolation to create extra frames, resulting in smoother graphics. "
+@@ -614,7 +645,9 @@ void BenMenu::AddSettings() {
      AddWidget(path, "Match Refresh Rate", WIDGET_CVAR_CHECKBOX)
          .CVar("gMatchRefreshRate")
          .Options(CheckboxOptions().Tooltip("Matches interpolation value to the refresh rate of your display."));
@@ -112,7 +137,7 @@ index f568c665e..3952024d8 100644
      AddWidget(path, "Enable Vsync", WIDGET_CVAR_CHECKBOX)
          .CVar(CVAR_VSYNC_ENABLED)
          .PreFunc([](WidgetInfo& info) { info.isHidden = mBenMenu->disabledMap.at(DISABLE_FOR_NO_VSYNC).active; })
-@@ -643,6 +658,71 @@ void BenMenu::AddSettings() {
+@@ -643,6 +676,71 @@ void BenMenu::AddSettings() {
  
      path.sidebarName = "Controls";
      AddSidebarEntry("Settings", "Controls", 1);
@@ -184,8 +209,26 @@ index f568c665e..3952024d8 100644
      AddWidget(path, "Popout Bindings Window", WIDGET_WINDOW_BUTTON)
          .CVar("gWindows.BenInputEditor")
          .WindowName("2S2H Input Editor")
+@@ -2303,6 +2401,17 @@ void BenMenu::InitElement() {
+         { DISABLE_FOR_MATCH_REFRESH_RATE_ON,
+           { [](disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
+             "Match Refresh Rate is Enabled" } },
++#ifdef __IOS__
++        { DISABLE_FOR_NATIVE_RESOLUTION_OFF,
++          { [](disabledInfo& info) -> bool { return !CVarGetInteger("gSettings.IOS.NativeResolution", 0); },
++            "Native Screen Resolution is Disabled" } },
++        { DISABLE_FOR_NATIVE_RESOLUTION_LOCK_60_ON,
++          { [](disabledInfo& info) -> bool {
++               return CVarGetInteger("gSettings.IOS.NativeResolution", 0) &&
++                      CVarGetInteger("gSettings.IOS.NativeResolutionLock60", 0);
++           },
++            "Locked at 60 FPS (Native Screen Resolution)" } },
++#endif
+         { DISABLE_FOR_MOTION_BLUR_MODE,
+           { [](disabledInfo& info) -> bool {
+                info.value = CVarGetInteger("gEnhancements.Graphics.MotionBlur.Mode", 0);
 diff --git a/mm/2s2h/BenGui/Menu.cpp b/mm/2s2h/BenGui/Menu.cpp
-index bdd501c4c..140fbf902 100644
+index bdd501c4c..5d29f9b0d 100644
 --- a/mm/2s2h/BenGui/Menu.cpp
 +++ b/mm/2s2h/BenGui/Menu.cpp
 @@ -604,6 +604,11 @@ void Menu::DrawElement() {
@@ -214,7 +257,7 @@ index bdd501c4c..140fbf902 100644
      ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + style.FramePadding * 2;
      bool scrollbar = false;
 +#ifdef __IOS__
-+    // MaskPad: bars that overflow scroll with a finger drag; drawing scrollbars covers the labels.
++    // MaskPad: the category bar scrolls with a finger drag; its scrollbar covers the labels.
 +    constexpr ImGuiWindowFlags touchScrollFlags = ImGuiWindowFlags_NoScrollbar;
 +    if (false) {
 +#else
@@ -248,7 +291,7 @@ index bdd501c4c..140fbf902 100644
      ImGui::BeginChild((menuEntries.at(headerIndex).label + " Section").c_str(), { sidebarWidth, columnHeight * 3 },
 -                      ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize, ImGuiWindowFlags_NoTitleBar);
 +                      ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
-+                      ImGuiWindowFlags_NoTitleBar | touchScrollFlags);
++                      ImGuiWindowFlags_NoTitleBar);
      for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
          std::string nextIndex = "";
          UIWidgets::PushStyleButton(menuThemeIndex);
@@ -261,8 +304,23 @@ index bdd501c4c..140fbf902 100644
          columns = 1;
      }
      float columnWidth = (sectionWidth - style.ItemSpacing.x * columns) / columns;
+diff --git a/mm/2s2h/BenGui/MenuTypes.h b/mm/2s2h/BenGui/MenuTypes.h
+index b2aff14c9..96a67c1e5 100644
+--- a/mm/2s2h/BenGui/MenuTypes.h
++++ b/mm/2s2h/BenGui/MenuTypes.h
+@@ -34,6 +34,10 @@ typedef enum {
+     DISABLE_FOR_VERTICAL_RESOLUTION_OFF,
+     DISABLE_FOR_LINKS_VOICE_PITCH_MULTIPLIER_OFF,
+     DISABLE_FOR_KOUME_INVINCIBLE,
++#ifdef __IOS__
++    DISABLE_FOR_NATIVE_RESOLUTION_OFF,
++    DISABLE_FOR_NATIVE_RESOLUTION_LOCK_60_ON,
++#endif
+ } DisableOption;
+ 
+ struct WidgetInfo;
 diff --git a/mm/2s2h/BenPort.cpp b/mm/2s2h/BenPort.cpp
-index 653de66ad..4cf0a1717 100644
+index 653de66ad..988ddabee 100644
 --- a/mm/2s2h/BenPort.cpp
 +++ b/mm/2s2h/BenPort.cpp
 @@ -69,6 +69,11 @@ CrowdControl* CrowdControl::Instance;
@@ -331,7 +389,22 @@ index 653de66ad..4cf0a1717 100644
                      BenGui::RegisterPopup("No ROM Archives",
                                            "No ROM O2R files detected. Please generate a ROM O2R and relaunch.", "OK",
                                            "", [&]() { exit(0); });
-@@ -960,6 +991,14 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
+@@ -785,6 +816,14 @@ ImFont* OTRGlobals::CreateDefaultFontWithSize(float size) {
+ }
+ 
+ uint32_t OTRGlobals::GetInterpolationFPS() {
++#ifdef __IOS__
++    // MaskPad: "Lock at 60 FPS" only applies while Native Screen Resolution is on, and takes priority over the
++    // slider and Match Refresh Rate. The refresh rate still bounds it (60 Hz in Low Power Mode).
++    if (CVarGetInteger("gSettings.IOS.NativeResolution", 0) &&
++        CVarGetInteger("gSettings.IOS.NativeResolutionLock60", 0)) {
++        return std::min<uint32_t>(Ship::Context::GetRawInstance()->GetWindow()->GetCurrentRefreshRate(), 60);
++    }
++#endif
+     if (CVarGetInteger("gMatchRefreshRate", 0)) {
+         return Ship::Context::GetRawInstance()->GetWindow()->GetCurrentRefreshRate();
+     } else if (CVarGetInteger(CVAR_VSYNC_ENABLED, 1) ||
+@@ -960,6 +999,14 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
  }
  
  extern "C" void InitOTR(int argc, char* argv[]) {
@@ -346,7 +419,7 @@ index 653de66ad..4cf0a1717 100644
      OTRGlobals::Instance = new OTRGlobals();
      OTRGlobals::Instance->RunExtract(argc, argv);
  
-@@ -970,6 +1009,30 @@ extern "C" void InitOTR(int argc, char* argv[]) {
+@@ -970,6 +1017,30 @@ extern "C" void InitOTR(int argc, char* argv[]) {
      conf->RunVersionUpdates();
      Ship::Context::GetRawInstance()->GetConsoleVariables()->Save();
  
