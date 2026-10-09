@@ -185,7 +185,7 @@ index f568c665e..3952024d8 100644
          .CVar("gWindows.BenInputEditor")
          .WindowName("2S2H Input Editor")
 diff --git a/mm/2s2h/BenGui/Menu.cpp b/mm/2s2h/BenGui/Menu.cpp
-index bdd501c4c..541d1211f 100644
+index bdd501c4c..140fbf902 100644
 --- a/mm/2s2h/BenGui/Menu.cpp
 +++ b/mm/2s2h/BenGui/Menu.cpp
 @@ -604,6 +604,11 @@ void Menu::DrawElement() {
@@ -209,7 +209,31 @@ index bdd501c4c..541d1211f 100644
      if (headerSearch) {
          headerWidth += 200.0f + style.ItemSpacing.x + style.FramePadding.x;
      }
-@@ -775,7 +780,7 @@ void Menu::DrawElement() {
+@@ -647,7 +652,14 @@ void Menu::DrawElement() {
+     float headerHeight = headerSizes.at(0).y + style.FramePadding.y * 2;
+     ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + style.FramePadding * 2;
+     bool scrollbar = false;
++#ifdef __IOS__
++    // MaskPad: bars that overflow scroll with a finger drag; drawing scrollbars covers the labels.
++    constexpr ImGuiWindowFlags touchScrollFlags = ImGuiWindowFlags_NoScrollbar;
++    if (false) {
++#else
++    constexpr ImGuiWindowFlags touchScrollFlags = ImGuiWindowFlags_None;
+     if (headerWidth > menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3) {
++#endif
+         headerHeight += style.ScrollbarSize;
+         scrollbar = true;
+     }
+@@ -660,7 +672,7 @@ void Menu::DrawElement() {
+     bool autoFocus = CVarGetInteger("gSettings.Menu.SearchAutofocus", 0);
+     ImGui::BeginChild("Header Selection", headerSelSize,
+                       ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
+-                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_HorizontalScrollbar);
++                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_HorizontalScrollbar | touchScrollFlags);
+     uint8_t curIndex = 0;
+     for (auto& label : menuOrder) {
+         if (curIndex != 0) {
+@@ -775,7 +787,7 @@ void Menu::DrawElement() {
      float sectionHeight = menuSize.y - headerHeight - 4 - style.ItemSpacing.y * 2;
      float columnHeight = sectionHeight - style.ItemSpacing.y * 4;
      ImGui::SetNextWindowPos(pos + style.ItemSpacing * 2);
@@ -218,7 +242,17 @@ index bdd501c4c..541d1211f 100644
  
      const char* sidebarCvar = menuEntries.at(headerIndex).sidebarCvar;
  
-@@ -823,7 +828,7 @@ void Menu::DrawElement() {
+@@ -788,7 +800,8 @@ void Menu::DrawElement() {
+     float topY = pos.y;
+     ImGui::SetNextWindowSizeConstraints({ sidebarWidth, 0 }, { sidebarWidth, columnHeight });
+     ImGui::BeginChild((menuEntries.at(headerIndex).label + " Section").c_str(), { sidebarWidth, columnHeight * 3 },
+-                      ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize, ImGuiWindowFlags_NoTitleBar);
++                      ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
++                      ImGuiWindowFlags_NoTitleBar | touchScrollFlags);
+     for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
+         std::string nextIndex = "";
+         UIWidgets::PushStyleButton(menuThemeIndex);
+@@ -823,7 +836,7 @@ void Menu::DrawElement() {
      std::string sectionMenuId = sectionIndex + " Settings";
      int columns = sidebar->at(sectionIndex).columnCount;
      size_t columnFuncs = sidebar->at(sectionIndex).columnWidgets.size();
