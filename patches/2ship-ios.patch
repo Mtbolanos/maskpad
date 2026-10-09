@@ -228,7 +228,7 @@ index bdd501c4c..541d1211f 100644
      }
      float columnWidth = (sectionWidth - style.ItemSpacing.x * columns) / columns;
 diff --git a/mm/2s2h/BenPort.cpp b/mm/2s2h/BenPort.cpp
-index 653de66ad..23c723309 100644
+index 653de66ad..4cf0a1717 100644
 --- a/mm/2s2h/BenPort.cpp
 +++ b/mm/2s2h/BenPort.cpp
 @@ -69,6 +69,11 @@ CrowdControl* CrowdControl::Instance;
@@ -319,7 +319,7 @@ index 653de66ad..23c723309 100644
 +#ifdef __IOS__
 +    CVarSetInteger(CVAR_IMGUI_CONTROLLER_NAV, 1);
 +    CVarRegisterInteger("gSettings.MaskPad.PhonePerformanceDefaultsV1", 0);
-+    if (Ship::Context::GetInstance()->GetWindow()->GetHeight() < 560 &&
++    if (Ship::Context::GetRawInstance()->GetWindow()->GetHeight() < 560 &&
 +        !CVarGetInteger("gSettings.MaskPad.PhonePerformanceDefaultsV1", 0)) {
 +        CVarSetInteger("gInterpolationFPS", 20);
 +        CVarSetInteger("gSettings.MaskPad.PhonePerformanceDefaultsV1", 1);

@@ -68,8 +68,21 @@ jobs:
 
       - name: Reproduce unsigned arm64 iPhoneOS app
         run: |
-          scripts/configure-ios.sh --device
-          scripts/build-ios.sh --device
+          set -o pipefail
+          scripts/configure-ios.sh --device 2>&1 | tee -a build.log
+          scripts/build-ios.sh --device 2>&1 | tee -a build.log
+
+      # Build logs are not always downloadable; surface compiler and CMake errors as annotations.
+      - name: Report build errors
+        if: failure()
+        run: |
+          grep -E "error:|CMake Error|fatal error|Undefined symbol|ld: " build.log | sort -u | head -120 > errors.txt || true
+          [ -s errors.txt ] || tail -60 build.log > errors.txt
+          split -l 12 errors.txt chunk.
+          for f in chunk.*; do
+            msg="$(sed 's/%/%25/g' "$f" | awk '{printf "%s%%0A", $0}')"
+            echo "::error title=Build errors ($f)::$msg"
+          done
 
       - name: Package and audit unsigned IPA
         run: |
