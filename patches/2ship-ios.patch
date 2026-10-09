@@ -538,7 +538,7 @@ index ce75d5972..75a86c331 100644
  }
  
 diff --git a/mm/CMakeLists.txt b/mm/CMakeLists.txt
-index d9f7f09c5..deb46e758 100644
+index d9f7f09c5..f3c80003e 100644
 --- a/mm/CMakeLists.txt
 +++ b/mm/CMakeLists.txt
 @@ -1,11 +1,15 @@
@@ -685,15 +685,45 @@ index d9f7f09c5..deb46e758 100644
  target_precompile_headers(${PROJECT_NAME} PRIVATE
      "$<$<COMPILE_LANGUAGE:CXX>:<libultraship/bridge/consolevariablebridge.h$<ANGLE-R>>"
      "$<$<COMPILE_LANGUAGE:CXX>:<ship/Context.h$<ANGLE-R>>"
-@@ -494,6 +571,7 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
+@@ -494,6 +571,37 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
      "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/include/functions.h>"
      "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/include/variables.h>"
  )
++else()
++# MaskPad: no precompiled header with the Xcode generator on iOS. Force-include the same
++# headers instead, since upstream sources rely on the PCH for these declarations.
++target_compile_options(${PROJECT_NAME} PRIVATE
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include libultraship/bridge/consolevariablebridge.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ship/Context.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ship/resource/ResourceManager.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ship/window/Window.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include spdlog/spdlog.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include string>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include vector>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include map>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include unordered_map>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include filesystem>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include fstream>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include algorithm>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include functional>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include variant>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/2s2h/GameInteractor/GameInteractor.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/variables.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/functions.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/macros.h>"
++    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/z64.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/ultra64.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/global.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/z64.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/macros.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/functions.h>"
++    "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/include/variables.h>"
++)
 +endif()
  
  # MSVC only: the header is expensive to parse there, few sources include it, and MSVC's PCH load
  # barely grows with content. On Clang the parse is cheap by comparison and the bigger PCH is paid
-@@ -594,6 +672,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+@@ -594,6 +702,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
      target_include_directories(${PROJECT_NAME} PRIVATE
          ${DEVKITPRO}/portlibs/wiiu/include/
      )
@@ -716,7 +746,7 @@ index d9f7f09c5..deb46e758 100644
  else()
      find_package(SDL2)
      set(THREADS_PREFER_PTHREAD_FLAG ON)
-@@ -620,7 +714,7 @@ else()
+@@ -620,7 +744,7 @@ else()
  
  endif()
  
@@ -725,7 +755,7 @@ index d9f7f09c5..deb46e758 100644
  INSTALL(TARGETS 2ship DESTINATION . COMPONENT 2s2h)
  endif()
  
-@@ -629,15 +723,37 @@ INSTALL(FILES $<TARGET_PDB_FILE:2ship> DESTINATION ./debug COMPONENT 2s2h)
+@@ -629,15 +753,37 @@ INSTALL(FILES $<TARGET_PDB_FILE:2ship> DESTINATION ./debug COMPONENT 2s2h)
  INSTALL(FILES ${CMAKE_BINARY_DIR}/mm/2ship.o2r DESTINATION . COMPONENT 2s2h)
  endif()
  
