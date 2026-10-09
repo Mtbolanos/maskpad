@@ -319,6 +319,20 @@ index b2aff14c9..96a67c1e5 100644
  } DisableOption;
  
  struct WidgetInfo;
+diff --git a/mm/2s2h/BenGui/ResolutionEditor.cpp b/mm/2s2h/BenGui/ResolutionEditor.cpp
+index 7a55b82c2..efc15e3a2 100644
+--- a/mm/2s2h/BenGui/ResolutionEditor.cpp
++++ b/mm/2s2h/BenGui/ResolutionEditor.cpp
+@@ -560,7 +560,8 @@ void UpdateResolutionVars() {
+ bool IsDroppingFrames() {
+     // a rather imprecise way of checking for frame drops.
+     // but it's mostly there to inform the player of large drops.
+-    const short targetFPS = CVarGetInteger("gInterpolationFPS", 20);
++    // The effective target (Match Refresh Rate, Vsync cap, iOS lock), not the slider value.
++    const short targetFPS = OTRGlobals::Instance->GetInterpolationFPS();
+     const float threshold = targetFPS / 20.0f + 4.1f;
+     return ImGui::GetIO().Framerate < targetFPS - threshold;
+ }
 diff --git a/mm/2s2h/BenPort.cpp b/mm/2s2h/BenPort.cpp
 index 653de66ad..988ddabee 100644
 --- a/mm/2s2h/BenPort.cpp
