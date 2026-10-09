@@ -488,6 +488,19 @@ index ab79f2102..8bc7da3e8 100644
  namespace Rando {
  namespace ClockItems {
  
+diff --git a/mm/2s2h/Rando/MiscBehavior/TycoonWallet.cpp b/mm/2s2h/Rando/MiscBehavior/TycoonWallet.cpp
+index ab7b43dcd..2b30c0460 100644
+--- a/mm/2s2h/Rando/MiscBehavior/TycoonWallet.cpp
++++ b/mm/2s2h/Rando/MiscBehavior/TycoonWallet.cpp
+@@ -3,6 +3,8 @@
+ #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
+ 
+ extern "C" {
++// Explicit for builds without the precompiled header (iOS).
++#include "functions.h"
+ #include "interface/parameter_static/parameter_static.h"
+ extern const char* sCounterTextures[];
+ }
 diff --git a/mm/2s2h/Rando/Rando.h b/mm/2s2h/Rando/Rando.h
 index 80df71535..34e9d4881 100644
 --- a/mm/2s2h/Rando/Rando.h
