@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="${MASKPAD_IOS_BUILD_DIR:-$ROOT/build-ios-simulator}"
-BUNDLE_ID="${MASKPAD_BUNDLE_ID:-com.chrissotraidis.maskpad}"
+BUNDLE_ID="${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpad}"
 
 if [ "$#" -eq 0 ]; then
     echo "Usage: $0 <simulator-udid> [simulator-udid ...]" >&2

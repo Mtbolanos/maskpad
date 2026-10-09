@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Controller slot reconciliation (sleep, disconnect, reconnect, extra pads) lives in the
+# libultraship patch shared with HarkinianPad; this exercises it without a device.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE="$ROOT/sources/2ship2harkinian/libultraship"
 
@@ -14,14 +16,13 @@ if ! git -C "$SOURCE" apply --reverse --check "$ROOT/patches/libultraship-ios.pa
     exit 1
 fi
 
-TEST_BINARY="$(mktemp -t maskpad-controller-test.XXXXXX)"
-trap 'rm -f "$TEST_BINARY"' EXIT
+test_dir="$(mktemp -d "${TMPDIR:-/tmp}/maskpad-controller-test.XXXXXX")"
+trap 'rm -rf "$test_dir"' EXIT
 
-"${CXX:-clang++}" -std=c++20 -Wall -Wextra -Werror \
-    -I"$ROOT/tests/fakes" \
+"${CXX:-c++}" -std=c++20 -Wall -Wextra -Werror \
     -I"$SOURCE/include" \
-    "$ROOT/tests/controller_reconnect_test.cpp" \
-    "$SOURCE/src/ship/controller/physicaldevice/ConnectedPhysicalDeviceManager.cpp" \
-    -o "$TEST_BINARY"
+    "$ROOT/tests/controller_slot_assignments_test.cpp" \
+    "$SOURCE/src/ship/controller/physicaldevice/ControllerSlotAssignments.cpp" \
+    -o "$test_dir/controller_slot_assignments_test"
 
-"$TEST_BINARY"
+"$test_dir/controller_slot_assignments_test"
