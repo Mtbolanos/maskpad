@@ -90,7 +90,7 @@ scripts/build-ios.sh --device
 scripts/package-unsigned-ipa.sh
 ```
 
-El resultado es `artifacts/MaskPad-0.3.1-unsigned.ipa`. Fírmalo con tu
+El resultado es `artifacts/MaskPad-0.4.0-unsigned.ipa`. Fírmalo con tu
 herramienta de sideloading de siempre. Cada push también compila en GitHub
 Actions. Para el simulador, la firma con tu propio equipo de desarrollo y el
 detalle completo, ver [`docs/building.md`](docs/building.md) (en inglés).
