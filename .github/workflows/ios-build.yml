@@ -30,6 +30,9 @@ jobs:
       - name: Check assets, history, scripts, patches, links, and credentials
         run: scripts/check-repo-safety.sh
 
+      - name: Verify SDL patches apply fresh and re-apply on a cached checkout
+        run: scripts/check-sdl-patches.sh
+
   ios-build:
     name: Full app (unsigned iPhoneOS)
     runs-on: macos-15
