@@ -17,6 +17,17 @@ static std::atomic_bool sNativeHudTouchDesired(false);
 static void MaskPad_ApplyTouchControlsState(void);
 // A connected game controller hides the touch controls (the menu button stays).
 static std::atomic_bool sGameControllerConnected(false);
+static bool sAutoHideDisabled = false; // UI tests run with the touch controls always available
+
+// Only real gamepads count (a full gamepad profile); other GameController devices do not hide the controls.
+static bool MaskPad_GamepadConnected(void) {
+    for (GCController* controller in GCController.controllers) {
+        if (controller.extendedGamepad != nil) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // libultraship's external display support (Extend to External Display).
 extern "C" void* ShipIOS_TouchHostWindow(void);
@@ -1529,14 +1540,14 @@ static void MaskPad_InstallLifecycleObservers(void) {
     }
     sLifecycleObserversInstalled = YES;
     NSNotificationCenter* notifications = NSNotificationCenter.defaultCenter;
-    sGameControllerConnected.store(GCController.controllers.count > 0);
+    sGameControllerConnected.store(MaskPad_GamepadConnected());
     for (NSNotificationName name in @[ GCControllerDidConnectNotification, GCControllerDidDisconnectNotification ]) {
         [notifications addObserverForName:name
                                    object:nil
                                     queue:NSOperationQueue.mainQueue
                                usingBlock:^(NSNotification* notification) {
                                    (void)notification;
-                                   sGameControllerConnected.store(GCController.controllers.count > 0);
+                                   sGameControllerConnected.store(MaskPad_GamepadConnected());
                                    MaskPad_ApplyTouchControlsState();
                                }];
     }
@@ -1565,7 +1576,8 @@ static void MaskPad_ApplyTouchControlsState(void) {
 
     MaskPad_InstallMenuButton(window);
     const bool hiddenForController =
-        sGameControllerConnected.load() && !sLayoutEditorRequested && !sLayoutEditorActive.load();
+        sGameControllerConnected.load() && !sAutoHideDisabled && !sLayoutEditorRequested &&
+        !sLayoutEditorActive.load();
     if (!sTouchControlsDesired.load() || sTouchControlsMenuVisible.load() || hiddenForController) {
         if (sTouchOverlay.layoutEditing) {
             [sTouchOverlay endLayoutEditing];
@@ -1682,6 +1694,7 @@ void MaskPad_RunUITestMode(void) {
             [sUITestWindow makeKeyAndVisible];
         }
         MaskPad_InstallLifecycleObservers();
+        sAutoHideDisabled = true;
         const BOOL editing =
             [environment[@"MASKPAD_UI_TEST_MODE"] isEqualToString:@"editor"];
         sTouchControlsDesired.store(true);
