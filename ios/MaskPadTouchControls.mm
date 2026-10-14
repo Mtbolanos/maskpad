@@ -5,8 +5,6 @@
 #include <atomic>
 #include <SDL.h>
 
-#include "libultraship/bridge/consolevariablebridge.h"
-
 #include "MaskPadTouchControls.h"
 
 static std::atomic_bool sTouchControlsDesired(false);
@@ -22,6 +20,9 @@ static std::atomic_bool sNativeHudTouchDesired(false);
 static std::atomic<uint32_t> sTouchButtons(0);
 static std::atomic<float> sTouchStick[2];
 static std::atomic<float> sTouchCamera[2];
+// Settings pushed by the port (its menu and startup); the overlay can exist before the console variables do.
+static std::atomic_bool sTouchCameraStickEnabled(false);
+static std::atomic_bool sTouchHapticsEnabled(true);
 
 // N64 button bits (libultraship controller.h BTN_*).
 static uint32_t MaskPad_ButtonForScancode(SDL_Scancode scancode) {
@@ -46,7 +47,7 @@ static uint32_t MaskPad_ButtonForScancode(SDL_Scancode scancode) {
 }
 
 static void MaskPad_TouchHaptic(void) {
-    if (!CVarGetInteger("gSettings.MaskPad.TouchHaptics", 1)) {
+    if (!sTouchHapticsEnabled.load()) {
         return;
     }
     static UIImpactFeedbackGenerator* generator;
@@ -622,7 +623,7 @@ static MaskPadTouchButton* sMenuButton;
         self.multipleTouchEnabled = YES;
 
         self.controlStick = [[MaskPadTouchStick alloc] initWithFrame:CGRectZero];
-        if (CVarGetInteger("gSettings.MaskPad.TouchCameraStick", 0)) {
+        if (sTouchCameraStickEnabled.load()) {
             self.cameraStick = [[MaskPadTouchStick alloc] initWithFrame:CGRectZero];
             self.cameraStick.cameraStick = YES;
             self.cameraStick.isAccessibilityElement = YES;
@@ -1738,8 +1739,15 @@ void MaskPad_SetCustomizableTouchControlsEnabled(int enabled) {
     });
 }
 
+void MaskPad_SetTouchHapticsEnabled(int enabled) {
+    sTouchHapticsEnabled.store(enabled != 0);
+}
+
 void MaskPad_SetTouchCameraStickEnabled(int enabled) {
-    (void)enabled; // read from the CVar when the overlay is rebuilt
+    if (sTouchCameraStickEnabled.exchange(enabled != 0) == (enabled != 0)) {
+        return;
+    }
+    // The overlay builds its controls once; rebuild it to add or remove the camera stick.
     dispatch_async(dispatch_get_main_queue(), ^{
         if (sTouchOverlay != nil) {
             if (sTouchOverlay.layoutEditing) {

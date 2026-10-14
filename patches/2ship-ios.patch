@@ -69,7 +69,7 @@ index 73779aab6..df49f83ec 100644
          Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetGyro()->GetGyroMapping();
      if (mapping != nullptr) {
 diff --git a/mm/2s2h/BenGui/BenMenu.cpp b/mm/2s2h/BenGui/BenMenu.cpp
-index f568c665e..ddc3beb81 100644
+index f568c665e..053ef84bf 100644
 --- a/mm/2s2h/BenGui/BenMenu.cpp
 +++ b/mm/2s2h/BenGui/BenMenu.cpp
 @@ -20,6 +20,10 @@
@@ -152,7 +152,7 @@ index f568c665e..ddc3beb81 100644
      AddWidget(path, "Enable Vsync", WIDGET_CVAR_CHECKBOX)
          .CVar(CVAR_VSYNC_ENABLED)
          .PreFunc([](WidgetInfo& info) { info.isHidden = mBenMenu->disabledMap.at(DISABLE_FOR_NO_VSYNC).active; })
-@@ -643,6 +691,83 @@ void BenMenu::AddSettings() {
+@@ -643,6 +691,84 @@ void BenMenu::AddSettings() {
  
      path.sidebarName = "Controls";
      AddSidebarEntry("Settings", "Controls", 1);
@@ -204,6 +204,7 @@ index f568c665e..ddc3beb81 100644
 +                              "must be enabled). Its position and size can be changed in the touch layout editor."));
 +    AddWidget(path, "Touch Haptics", WIDGET_CVAR_CHECKBOX)
 +        .CVar("gSettings.MaskPad.TouchHaptics")
++        .Callback([](WidgetInfo& info) { MaskPad_SetTouchHapticsEnabled(CVarGetInteger("gSettings.MaskPad.TouchHaptics", 1)); })
 +        .Options(CheckboxOptions().DefaultValue(true).Tooltip("Light vibration when a touch button is pressed."));
 +    AddWidget(path, "Legacy Fixed Touch Controls", WIDGET_CVAR_CHECKBOX)
 +        .CVar("gSettings.MaskPad.LegacyFixedTouchControls")
@@ -236,7 +237,7 @@ index f568c665e..ddc3beb81 100644
      AddWidget(path, "Popout Bindings Window", WIDGET_WINDOW_BUTTON)
          .CVar("gWindows.BenInputEditor")
          .WindowName("2S2H Input Editor")
-@@ -2303,6 +2428,20 @@ void BenMenu::InitElement() {
+@@ -2303,6 +2429,20 @@ void BenMenu::InitElement() {
          { DISABLE_FOR_MATCH_REFRESH_RATE_ON,
            { [](disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
              "Match Refresh Rate is Enabled" } },
@@ -365,7 +366,7 @@ index 7a55b82c2..efc15e3a2 100644
      return ImGui::GetIO().Framerate < targetFPS - threshold;
  }
 diff --git a/mm/2s2h/BenPort.cpp b/mm/2s2h/BenPort.cpp
-index 653de66ad..a4bc4de8d 100644
+index 653de66ad..06340b5fb 100644
 --- a/mm/2s2h/BenPort.cpp
 +++ b/mm/2s2h/BenPort.cpp
 @@ -69,6 +69,11 @@ CrowdControl* CrowdControl::Instance;
@@ -470,7 +471,7 @@ index 653de66ad..a4bc4de8d 100644
      OTRGlobals::Instance = new OTRGlobals();
      OTRGlobals::Instance->RunExtract(argc, argv);
  
-@@ -970,6 +1022,30 @@ extern "C" void InitOTR(int argc, char* argv[]) {
+@@ -970,6 +1022,32 @@ extern "C" void InitOTR(int argc, char* argv[]) {
      conf->RunVersionUpdates();
      Ship::Context::GetRawInstance()->GetConsoleVariables()->Save();
  
@@ -496,6 +497,8 @@ index 653de66ad..a4bc4de8d 100644
 +    CVarSetInteger("gSettings.MaskPad.NativeHudTouch", modernTouchControls);
 +    MaskPad_SetCustomizableTouchControlsEnabled(modernTouchControls);
 +    MaskPad_SetNativeHudTouchEnabled(modernTouchControls);
++    MaskPad_SetTouchCameraStickEnabled(CVarGetInteger("gSettings.MaskPad.TouchCameraStick", 0));
++    MaskPad_SetTouchHapticsEnabled(CVarGetInteger("gSettings.MaskPad.TouchHaptics", 1));
 +#endif
 +
      GameInteractor::Instance = new GameInteractor();
