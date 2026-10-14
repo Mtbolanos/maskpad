@@ -80,6 +80,8 @@ static bool MaskPad_NativeHudTouchActive(void) {
     return sNativeHudTouchDesired.load() && !LUS_IOSIsExtendedToExternalDisplay();
 }
 static std::atomic_bool sNativeHudTouchGameplayActive(false);
+// The game's ocarina/instrument is out: the game hides the face buttons then, so the normal touch buttons are shown.
+static std::atomic_bool sInstrumentActive(false);
 static std::atomic<float> sNativeHudButtonCenters[MASKPAD_HUD_BUTTON_COUNT][2];
 static std::atomic<float> sNativeHudButtonWidths[MASKPAD_HUD_BUTTON_COUNT];
 static void MaskPad_ApplyTouchControlsState(void);
@@ -1363,7 +1365,7 @@ static MaskPadTouchButton* sMenuButton;
     const BOOL hideUIKitFaceButtons =
         sTouchControlsDesired.load() && MaskPad_NativeHudTouchActive() &&
         sNativeHudTouchGameplayActive.load() && !sTouchControlsMenuVisible.load() &&
-        !sLayoutEditorActive.load();
+        !sLayoutEditorActive.load() && !sInstrumentActive.load();
     for (MaskPadTouchButton* button in
          @[ self.buttonA, self.buttonB, self.cUp, self.cDown, self.cLeft, self.cRight ]) {
         // Hide only UIKit's artwork. The button itself stays fully opaque and
@@ -1951,6 +1953,16 @@ void MaskPad_SetNativeHudTouchEnabled(int enabled) {
     });
 }
 
+void MaskPad_SetOcarinaInstrumentActive(int active) {
+    const bool instrumentActive = active != 0;
+    if (sInstrumentActive.exchange(instrumentActive) == instrumentActive) {
+        return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [sTouchOverlay applyNativeHudVisualState];
+    });
+}
+
 void MaskPad_SetNativeHudTouchGameplayActive(int active) {
     const bool gameplayActive = active != 0;
     if (sNativeHudTouchGameplayActive.exchange(gameplayActive) == gameplayActive) {
@@ -2029,6 +2041,9 @@ int MaskPad_GetNativeHudTouchAlpha(int alpha) {
         !sLayoutEditorActive.load();
     if (!nativeTouchArtworkVisible) {
         return std::clamp(alpha, 0, 255);
+    }
+    if (sInstrumentActive.load()) {
+        return 0; // the normal touch buttons are shown instead
     }
     return std::clamp(static_cast<int>(alpha * sTouchControlsOpacity.load() + 0.5f), 0, 255);
 }

@@ -1000,6 +1000,30 @@ index d9f7f09c5..f3c80003e 100644
  INSTALL(FILES ${CMAKE_BINARY_DIR}/gamecontrollerdb.txt DESTINATION . COMPONENT 2s2h)
  endif()
  
+diff --git a/mm/src/audio/code_8019AF00.c b/mm/src/audio/code_8019AF00.c
+index 7f30d1b83..07134d2d7 100644
+--- a/mm/src/audio/code_8019AF00.c
++++ b/mm/src/audio/code_8019AF00.c
+@@ -5,6 +5,9 @@
+ #include "2s2h/Enhancements/Audio/AudioEditor.h"
+ #include <libultraship/bridge/consolevariablebridge.h>
+ #include <libultraship/bridge/audiobridge.h>
++#ifdef __IOS__
++#include "ios/MaskPadTouchControls.h"
++#endif
+ 
+ typedef struct {
+     /* 0x0 */ s8 x;
+@@ -2785,6 +2788,9 @@ void AudioOcarina_SetInstrument(u8 ocarinaInstrumentId) {
+         // #end region
+         SEQCMD_SET_CHANNEL_IO(SEQ_PLAYER_SFX, SFX_CHANNEL_OCARINA, 1, ocarinaInstrumentId);
+         sOcarinaInstrumentId = ocarinaInstrumentId;
++#ifdef __IOS__
++        MaskPad_SetOcarinaInstrumentActive(ocarinaInstrumentId != OCARINA_INSTRUMENT_OFF);
++#endif
+ 
+         if (ocarinaInstrumentId == OCARINA_INSTRUMENT_OFF) {
+             AudioOcarina_ResetAndMute();
 diff --git a/mm/src/code/graph.c b/mm/src/code/graph.c
 index e8157c874..7a490a04c 100644
 --- a/mm/src/code/graph.c
