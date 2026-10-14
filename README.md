@@ -37,7 +37,7 @@ Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
 
 ## Qué cambia respecto del original
 
-| | MaskPad 0.2.1 (original) | Este fork 0.5.2 |
+| | MaskPad 0.2.1 (original) | Este fork 0.5.3 |
 |---|---|---|
 | Upstream | 2 Ship 2 Harkinian 4.0.2 "Keiichi Charlie" | **2 Ship 2 Harkinian 5.0.1 "Battler Bravo"** |
 | FPS / ProMotion | Interpolaba a 120 pero iOS presentaba a 60 | Interpola a la tasa real de la pantalla: 120 Hz con ProMotion, 60 Hz en modo de bajo consumo |
@@ -125,7 +125,7 @@ scripts/build-ios.sh --device
 scripts/package-unsigned-ipa.sh
 ```
 
-El resultado es `artifacts/MaskPad-0.5.2-unsigned.ipa`. Fírmalo con tu
+El resultado es `artifacts/MaskPad-0.5.3-unsigned.ipa`. Fírmalo con tu
 herramienta de sideloading de siempre. Cada push también compila en GitHub
 Actions. Para el simulador, la firma con tu propio equipo de desarrollo y el
 detalle completo, ver [`docs/building.md`](docs/building.md) (en inglés).
