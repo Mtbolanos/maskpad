@@ -30,6 +30,7 @@ enum {
 
 void MaskPad_SetNativeHudTouchEnabled(int enabled);
 void MaskPad_SetNativeHudTouchGameplayActive(int active);
+int MaskPad_NativeHudPlacesButton(int button);
 int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, float* y);
 float MaskPad_GetNativeHudButtonScale(int button, float aspectRatio);
 int MaskPad_GetNativeHudTouchAlpha(int alpha);

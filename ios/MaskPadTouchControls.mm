@@ -816,7 +816,6 @@ static MaskPadTouchButton* sMenuButton;
 
         // Promoted from the accepted physical iPhone layout.
         self.cLeft.center = CGPointMake(width * 0.823855, height * 0.485470);
-        self.dDown.center = CGPointMake(width * 0.130727, height * 0.501709);
         self.cDown.center = CGPointMake(width * 0.866509, height * 0.570085);
         self.cUp.center = CGPointMake(width * 0.866904, height * 0.398291);
         self.controlStick.center = CGPointMake(width * 0.214455, height * 0.722222);
@@ -1966,6 +1965,18 @@ void MaskPad_SetNativeHudTouchGameplayActive(int active) {
             MaskPad_InstallMenuButton(window);
         }
     });
+}
+
+// True while the dynamic touch layout positions this face button in the native HUD.
+int MaskPad_NativeHudPlacesButton(int button) {
+    if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || !sTouchControlsDesired.load() ||
+        !MaskPad_NativeHudTouchActive() || !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
+        sLayoutEditorActive.load()) {
+        return 0;
+    }
+    const float normalizedX = sNativeHudButtonCenters[button][0].load();
+    const float normalizedY = sNativeHudButtonCenters[button][1].load();
+    return (normalizedX > 0.0f && normalizedX < 1.0f && normalizedY > 0.0f && normalizedY < 1.0f) ? 1 : 0;
 }
 
 int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, float* y) {

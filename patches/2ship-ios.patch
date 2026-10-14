@@ -258,6 +258,49 @@ index f568c665e..053ef84bf 100644
          { DISABLE_FOR_MOTION_BLUR_MODE,
            { [](disabledInfo& info) -> bool {
                 info.value = CVarGetInteger("gEnhancements.Graphics.MotionBlur.Mode", 0);
+diff --git a/mm/2s2h/BenGui/HudEditor.cpp b/mm/2s2h/BenGui/HudEditor.cpp
+index 1031b54df..f87eda567 100644
+--- a/mm/2s2h/BenGui/HudEditor.cpp
++++ b/mm/2s2h/BenGui/HudEditor.cpp
+@@ -1,6 +1,23 @@
+ #include "HudEditor.h"
+ #include "macros.h"
+ #include "2s2h/ShipInit.hpp"
++#ifdef __IOS__
++#include "ios/MaskPadTouchControls.h"
++
++// While the dynamic touch controls place a face button, the touch layout decides its position and size, so the
++// HUD editor's movable modes must not move it again (Hidden is still honored).
++static bool HudEditor_PlacedByTouchControls(HudEditorElementID id) {
++    switch (id) {
++        case HUD_EDITOR_ELEMENT_A: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_A);
++        case HUD_EDITOR_ELEMENT_B: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_B);
++        case HUD_EDITOR_ELEMENT_C_UP: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_C_UP);
++        case HUD_EDITOR_ELEMENT_C_DOWN: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_C_DOWN);
++        case HUD_EDITOR_ELEMENT_C_LEFT: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_C_LEFT);
++        case HUD_EDITOR_ELEMENT_C_RIGHT: return MaskPad_NativeHudPlacesButton(MASKPAD_HUD_BUTTON_C_RIGHT);
++        default: return false;
++    }
++}
++#endif
+ 
+ extern "C" int16_t OTRGetRectDimensionFromLeftEdge(float v);
+ extern "C" int16_t OTRGetRectDimensionFromRightEdge(float v);
+@@ -39,6 +56,14 @@ extern "C" void HudEditor_OverrideNextElementMode(HudEditorElementMode mode) {
+ }
+ 
+ extern "C" bool HudEditor_ShouldOverrideDraw() {
++#ifdef __IOS__
++    if (hudEditorActiveElement != HUD_EDITOR_ELEMENT_NONE && hudEditorOverrideNextElemMode == HUD_EDITOR_ELEMENT_MODE_NONE &&
++        CVarGetInteger(hudEditorElements[hudEditorActiveElement].modeCvar, HUD_EDITOR_ELEMENT_MODE_VANILLA) !=
++            HUD_EDITOR_ELEMENT_MODE_HIDDEN &&
++        HudEditor_PlacedByTouchControls(hudEditorActiveElement)) {
++        return false;
++    }
++#endif
+     return hudEditorActiveElement != HUD_EDITOR_ELEMENT_NONE &&
+            (hudEditorOverrideNextElemMode != HUD_EDITOR_ELEMENT_MODE_NONE
+                 ? hudEditorOverrideNextElemMode
 diff --git a/mm/2s2h/BenGui/Menu.cpp b/mm/2s2h/BenGui/Menu.cpp
 index bdd501c4c..5d29f9b0d 100644
 --- a/mm/2s2h/BenGui/Menu.cpp
