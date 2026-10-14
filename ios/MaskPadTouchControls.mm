@@ -14,6 +14,48 @@ static std::atomic_bool sTouchControlsMenuVisible(false);
 static std::atomic_bool sLayoutEditorActive(false);
 static BOOL sLayoutEditorRequested;
 static std::atomic_bool sNativeHudTouchDesired(false);
+
+// On-screen controls in N64 terms, read by libultraship for player 1 (ShipIOS_GetTouchPadState). The mapping is
+// fixed: touch L is always L, touch C-Up is always C-Up, whatever the controller bindings are.
+static std::atomic<uint32_t> sTouchButtons(0);
+static std::atomic<float> sTouchStick[2];
+static std::atomic<float> sTouchCamera[2];
+// Settings pushed by the port (its menu and startup); the overlay can exist before the console variables do.
+static std::atomic_bool sTouchCameraStickEnabled(false);
+static std::atomic_bool sTouchHapticsEnabled(true);
+
+// N64 button bits (libultraship controller.h BTN_*).
+static uint32_t MaskPad_ButtonForScancode(SDL_Scancode scancode) {
+    switch (scancode) {
+        case SDL_SCANCODE_X: return 0x8000;      // A
+        case SDL_SCANCODE_C: return 0x4000;      // B
+        case SDL_SCANCODE_Z: return 0x2000;      // Z
+        case SDL_SCANCODE_SPACE:
+        case SDL_SCANCODE_RETURN: return 0x1000; // Start
+        case SDL_SCANCODE_T: return 0x0800;      // D-Up
+        case SDL_SCANCODE_G: return 0x0400;      // D-Down
+        case SDL_SCANCODE_F: return 0x0200;      // D-Left
+        case SDL_SCANCODE_H: return 0x0100;      // D-Right
+        case SDL_SCANCODE_E: return 0x0020;      // L
+        case SDL_SCANCODE_R: return 0x0010;      // R
+        case SDL_SCANCODE_UP: return 0x0008;     // C-Up
+        case SDL_SCANCODE_DOWN: return 0x0004;   // C-Down
+        case SDL_SCANCODE_LEFT: return 0x0002;   // C-Left
+        case SDL_SCANCODE_RIGHT: return 0x0001;  // C-Right
+        default: return 0;
+    }
+}
+
+static void MaskPad_TouchHaptic(void) {
+    if (!sTouchHapticsEnabled.load()) {
+        return;
+    }
+    static UIImpactFeedbackGenerator* generator;
+    if (generator == nil) {
+        generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+    }
+    [generator impactOccurred];
+}
 static void MaskPad_ApplyTouchControlsState(void);
 // A connected game controller hides the touch controls (the menu button stays).
 static std::atomic_bool sGameControllerConnected(false);
@@ -38,6 +80,8 @@ static bool MaskPad_NativeHudTouchActive(void) {
     return sNativeHudTouchDesired.load() && !LUS_IOSIsExtendedToExternalDisplay();
 }
 static std::atomic_bool sNativeHudTouchGameplayActive(false);
+// The game's ocarina/instrument is out: the game hides the face buttons then, so the normal touch buttons are shown.
+static std::atomic_bool sInstrumentActive(false);
 static std::atomic<float> sNativeHudButtonCenters[MASKPAD_HUD_BUTTON_COUNT][2];
 static std::atomic<float> sNativeHudButtonWidths[MASKPAD_HUD_BUTTON_COUNT];
 static void MaskPad_ApplyTouchControlsState(void);
@@ -50,6 +94,18 @@ static void MaskPad_UpdateUITestNativeHUDProbe(void);
 #endif
 
 static void MaskPad_PushKey(SDL_Scancode scancode, BOOL pressed) {
+    const uint32_t bit = MaskPad_ButtonForScancode(scancode);
+    if (bit != 0) {
+        if (pressed) {
+            sTouchButtons.fetch_or(bit);
+        } else {
+            sTouchButtons.fetch_and(~bit);
+        }
+        return;
+    }
+    if (scancode != SDL_SCANCODE_ESCAPE) {
+        return; // stick directions are reported as analog values instead
+    }
     SDL_Event event = {};
     event.type = pressed ? SDL_KEYDOWN : SDL_KEYUP;
     event.key.timestamp = SDL_GetTicks();
@@ -199,6 +255,7 @@ static void MaskPad_PushKey(SDL_Scancode scancode, BOOL pressed) {
     [self updateTestAccessibilityValue];
 #endif
     [self updateAppearance];
+    MaskPad_TouchHaptic();
     MaskPad_PushKey(self.scancode, YES);
     if (self.holdToLatch) {
         NSUInteger generation = ++self.latchGeneration;
@@ -314,6 +371,7 @@ static MaskPadTouchButton* sMenuButton;
 @interface MaskPadTouchStick : UIView
 
 @property(nonatomic, strong) UIView* knob;
+@property(nonatomic) BOOL cameraStick; // drives the right stick (free look) instead of the control stick
 @property(nonatomic) BOOL layoutEditing;
 @property(nonatomic) BOOL upPressed;
 @property(nonatomic) BOOL downPressed;
@@ -407,6 +465,7 @@ static MaskPadTouchButton* sMenuButton;
         dy = dy / distance * radius;
     }
     self.knob.center = CGPointMake(center.x + dx, center.y + dy);
+    [self publishAnalogX:dx / radius y:dy / radius];
 
     // Use separate engage/release thresholds so a thumb near the boundary
     // does not chatter between directions. Keep smaller deflections cardinal
@@ -471,6 +530,24 @@ static MaskPadTouchButton* sMenuButton;
     [self setScancode:SDL_SCANCODE_A pressed:NO state:&_leftPressed];
     [self setScancode:SDL_SCANCODE_D pressed:NO state:&_rightPressed];
     self.knob.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
+    [self publishAnalogX:0.0 y:0.0];
+}
+
+// Analog output with a small dead zone, rescaled so the full range is still reachable. UIKit y grows
+// downwards; N64 sticks are +y up.
+- (void)publishAnalogX:(CGFloat)x y:(CGFloat)y {
+    const CGFloat deadZone = 0.12;
+    const CGFloat magnitude = hypot(x, y);
+    float outX = 0.0f;
+    float outY = 0.0f;
+    if (magnitude > deadZone) {
+        const CGFloat scaled = MIN(1.0, (magnitude - deadZone) / (1.0 - deadZone));
+        outX = (float)(x / magnitude * scaled);
+        outY = (float)(-y / magnitude * scaled);
+    }
+    std::atomic<float>* target = self.cameraStick ? sTouchCamera : sTouchStick;
+    target[0].store(outX);
+    target[1].store(outY);
 }
 
 #if defined(MASKPAD_UI_TEST_HARNESS)
@@ -493,6 +570,7 @@ static MaskPadTouchButton* sMenuButton;
 @interface MaskPadTouchOverlay : UIView
 
 @property(nonatomic, strong) MaskPadTouchStick* controlStick;
+@property(nonatomic, strong) MaskPadTouchStick* cameraStick; // nil unless Touch Camera Stick is enabled
 @property(nonatomic, strong) NSArray<MaskPadTouchButton*>* buttons;
 @property(nonatomic, strong) MaskPadTouchButton* buttonA;
 @property(nonatomic, strong) MaskPadTouchButton* buttonB;
@@ -547,6 +625,14 @@ static MaskPadTouchButton* sMenuButton;
         self.multipleTouchEnabled = YES;
 
         self.controlStick = [[MaskPadTouchStick alloc] initWithFrame:CGRectZero];
+        if (sTouchCameraStickEnabled.load()) {
+            self.cameraStick = [[MaskPadTouchStick alloc] initWithFrame:CGRectZero];
+            self.cameraStick.cameraStick = YES;
+            self.cameraStick.isAccessibilityElement = YES;
+            self.cameraStick.accessibilityLabel = @"Camera Stick";
+            self.cameraStick.accessibilityIdentifier = @"camera-stick";
+            self.cameraStick.knob.backgroundColor = [UIColor colorWithRed:0.95 green:0.67 blue:0.12 alpha:0.68];
+        }
         self.controlStick.isAccessibilityElement = YES;
         self.buttonA = [[MaskPadTouchButton alloc] initWithLabel:@"A" scancode:SDL_SCANCODE_X pill:NO];
         self.buttonB = [[MaskPadTouchButton alloc] initWithLabel:@"B" scancode:SDL_SCANCODE_C pill:NO];
@@ -637,6 +723,10 @@ static MaskPadTouchButton* sMenuButton;
         self.touchControlsOpacity = 1.0;
 
         [self addSubview:self.controlStick];
+        if (self.cameraStick != nil) {
+            self.editableControls = [self.editableControls arrayByAddingObject:self.cameraStick];
+            [self addSubview:self.cameraStick];
+        }
         for (MaskPadTouchButton* button in self.buttons) {
             [self addSubview:button];
         }
@@ -728,10 +818,14 @@ static MaskPadTouchButton* sMenuButton;
 
         // Promoted from the accepted physical iPhone layout.
         self.cLeft.center = CGPointMake(width * 0.823855, height * 0.485470);
-        self.dDown.center = CGPointMake(width * 0.130727, height * 0.501709);
         self.cDown.center = CGPointMake(width * 0.866509, height * 0.570085);
         self.cUp.center = CGPointMake(width * 0.866904, height * 0.398291);
         self.controlStick.center = CGPointMake(width * 0.214455, height * 0.722222);
+        if (self.cameraStick != nil) {
+            const CGFloat cameraSize = stickSize * 0.85;
+            self.cameraStick.frame = CGRectMake(0.0, 0.0, cameraSize, cameraSize);
+            self.cameraStick.center = CGPointMake(width * 0.66, height * 0.76);
+        }
         self.buttonZRight.center = CGPointMake(width * 0.242496, height * 0.499145);
         self.buttonA.center = CGPointMake(width * 0.876382, height * 0.737607);
         self.cRight.center = CGPointMake(width * 0.911137, height * 0.486325);
@@ -846,6 +940,11 @@ static MaskPadTouchButton* sMenuButton;
     self.cDown.center = CGPointMake(width * 0.902240, height * 0.905152);
     self.cUp.center = CGPointMake(width * 0.903338, height * 0.805484);
     self.controlStick.center = CGPointMake(width * 0.164363, height * 0.745313);
+    if (self.cameraStick != nil) {
+        const CGFloat cameraSize = stickSize * 0.85;
+        self.cameraStick.frame = CGRectMake(0.0, 0.0, cameraSize, cameraSize);
+        self.cameraStick.center = CGPointMake(width * 0.70, height * 0.84);
+    }
     self.buttonZRight.center = CGPointMake(width * 0.193089, height * 0.612859);
     self.buttonA.center = CGPointMake(width * 0.893309, height * 0.693020);
     self.cRight.center = CGPointMake(width * 0.948331, height * 0.852945);
@@ -1200,6 +1299,7 @@ static MaskPadTouchButton* sMenuButton;
         button.layoutEditing = YES;
     }
     self.controlStick.layoutEditing = YES;
+    self.cameraStick.layoutEditing = YES;
     for (UIGestureRecognizer* gesture in self.editGestures) {
         gesture.enabled = YES;
     }
@@ -1222,6 +1322,7 @@ static MaskPadTouchButton* sMenuButton;
         button.layoutEditing = NO;
     }
     self.controlStick.layoutEditing = NO;
+    self.cameraStick.layoutEditing = NO;
     for (UIGestureRecognizer* gesture in self.editGestures) {
         gesture.enabled = NO;
     }
@@ -1264,7 +1365,7 @@ static MaskPadTouchButton* sMenuButton;
     const BOOL hideUIKitFaceButtons =
         sTouchControlsDesired.load() && MaskPad_NativeHudTouchActive() &&
         sNativeHudTouchGameplayActive.load() && !sTouchControlsMenuVisible.load() &&
-        !sLayoutEditorActive.load();
+        !sLayoutEditorActive.load() && !sInstrumentActive.load();
     for (MaskPadTouchButton* button in
          @[ self.buttonA, self.buttonB, self.cUp, self.cDown, self.cLeft, self.cRight ]) {
         // Hide only UIKit's artwork. The button itself stays fully opaque and
@@ -1275,6 +1376,7 @@ static MaskPadTouchButton* sMenuButton;
 
 - (void)cancelAllInputs {
     [self.controlStick cancelInput];
+    [self.cameraStick cancelInput];
     for (MaskPadTouchButton* button in self.buttons) {
         [button cancelInput];
     }
@@ -1638,6 +1740,28 @@ void MaskPad_SetCustomizableTouchControlsEnabled(int enabled) {
     });
 }
 
+void MaskPad_SetTouchHapticsEnabled(int enabled) {
+    sTouchHapticsEnabled.store(enabled != 0);
+}
+
+void MaskPad_SetTouchCameraStickEnabled(int enabled) {
+    if (sTouchCameraStickEnabled.exchange(enabled != 0) == (enabled != 0)) {
+        return;
+    }
+    // The overlay builds its controls once; rebuild it to add or remove the camera stick.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (sTouchOverlay != nil) {
+            if (sTouchOverlay.layoutEditing) {
+                [sTouchOverlay endLayoutEditing];
+            }
+            [sTouchOverlay cancelAllInputs];
+            [sTouchOverlay removeFromSuperview];
+            sTouchOverlay = nil;
+        }
+        MaskPad_ApplyTouchControlsState();
+    });
+}
+
 void MaskPad_SetTouchControlsOpacity(float opacity) {
     const float clampedOpacity = std::clamp(opacity, 0.25f, 1.0f);
     sTouchControlsOpacity.store(clampedOpacity);
@@ -1829,6 +1953,16 @@ void MaskPad_SetNativeHudTouchEnabled(int enabled) {
     });
 }
 
+void MaskPad_SetOcarinaInstrumentActive(int active) {
+    const bool instrumentActive = active != 0;
+    if (sInstrumentActive.exchange(instrumentActive) == instrumentActive) {
+        return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [sTouchOverlay applyNativeHudVisualState];
+    });
+}
+
 void MaskPad_SetNativeHudTouchGameplayActive(int active) {
     const bool gameplayActive = active != 0;
     if (sNativeHudTouchGameplayActive.exchange(gameplayActive) == gameplayActive) {
@@ -1843,6 +1977,18 @@ void MaskPad_SetNativeHudTouchGameplayActive(int active) {
             MaskPad_InstallMenuButton(window);
         }
     });
+}
+
+// True while the dynamic touch layout positions this face button in the native HUD.
+int MaskPad_NativeHudPlacesButton(int button) {
+    if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || !sTouchControlsDesired.load() ||
+        !MaskPad_NativeHudTouchActive() || !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
+        sLayoutEditorActive.load()) {
+        return 0;
+    }
+    const float normalizedX = sNativeHudButtonCenters[button][0].load();
+    const float normalizedY = sNativeHudButtonCenters[button][1].load();
+    return (normalizedX > 0.0f && normalizedX < 1.0f && normalizedY > 0.0f && normalizedY < 1.0f) ? 1 : 0;
 }
 
 int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, float* y) {
@@ -1896,6 +2042,9 @@ int MaskPad_GetNativeHudTouchAlpha(int alpha) {
     if (!nativeTouchArtworkVisible) {
         return std::clamp(alpha, 0, 255);
     }
+    if (sInstrumentActive.load()) {
+        return 0; // the normal touch buttons are shown instead
+    }
     return std::clamp(static_cast<int>(alpha * sTouchControlsOpacity.load() + 0.5f), 0, 255);
 }
 
@@ -1912,4 +2061,15 @@ extern "C" void ShipIOS_TouchHostChanged(void) {
 // libultraship's GUI reports menu visibility through a port-neutral hook.
 extern "C" void ShipIOS_SetTouchControlsMenuVisible(int visible) {
     MaskPad_SetTouchControlsMenuVisible(visible);
+}
+
+// libultraship reads the on-screen controls for player 1 once per input poll.
+extern "C" int ShipIOS_GetTouchPadState(uint32_t* buttons, float* stickX, float* stickY, float* cameraX,
+                                        float* cameraY) {
+    *buttons = sTouchButtons.load();
+    *stickX = sTouchStick[0].load();
+    *stickY = sTouchStick[1].load();
+    *cameraX = sTouchCamera[0].load();
+    *cameraY = sTouchCamera[1].load();
+    return (*buttons != 0 || *stickX != 0.0f || *stickY != 0.0f || *cameraX != 0.0f || *cameraY != 0.0f) ? 1 : 0;
 }

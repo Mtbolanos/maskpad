@@ -3,6 +3,23 @@
 Versión y build de cada IPA (`version.json`). Los builds intermedios de prueba se compilaron en ramas
 aparte y no se listan.
 
+## 0.5.1 (build 19)
+
+- Con los controles táctiles dinámicos, al sacar la ocarina (o los instrumentos de las transformaciones)
+  se muestran los botones táctiles normales, porque el juego oculta A y C mientras se toca.
+- Con los controles táctiles dinámicos, el HUD Editor (por ejemplo el preset Widescreen) ya no saca de
+  lugar los botones A, B y C dibujados por el juego.
+- La flecha abajo del d-pad táctil queda simétrica en el layout por defecto del iPhone.
+
+## 0.5.0 (build 17)
+
+- Los controles táctiles actúan directo sobre el control del jugador 1, con mapeo fijo, en vez de
+  escribir teclas: el teclado queda libre y los bindings no los alteran.
+- Stick táctil análogo, con una zona muerta pequeña.
+- **Touch Camera Stick** (Settings → Controls, apagado por defecto): un segundo stick que actúa como el
+  stick derecho, para Free Look. Editable en Customize Touch Layout.
+- **Touch Haptics** (encendido por defecto): vibración suave al presionar un botón táctil.
+
 ## 0.4.1 (build 16)
 
 - Con una pantalla externa conectada, el menú abierto en el dispositivo ya no hace saltar los FPS a la tasa
