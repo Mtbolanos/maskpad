@@ -26,7 +26,21 @@ for udid in "$@"; do
         -only-testing:MaskPadUITests/MaskPadUITests/testMoveResizeClampProtectionResetAndPersistence \
         test || {
             status=$?
-            xcrun xcresulttool get test-results summary --path "$results" --compact || true
+            summary="$(xcrun xcresulttool get test-results summary --path "$results" --compact || true)"
+            echo "$summary"
+            # Surface the failing tests as annotations (job logs are not always reachable).
+            python3 -c '
+import json, sys
+try:
+    data = json.loads(sys.stdin.read())
+except ValueError:
+    sys.exit(0)
+for failure in (data.get("testFailures") or [])[:10]:
+    text = " ".join(str(failure.get("failureText", "")).split())[:900]
+    print("::error title=UI test failed: %s::%s" % (failure.get("testName", "?"), text))
+if not data.get("testFailures"):
+    print("::error title=UI test summary::%s" % " ".join(json.dumps(data).split())[:900])
+' <<<"$summary" || true
             exit "$status"
         }
 done

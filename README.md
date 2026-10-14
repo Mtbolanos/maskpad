@@ -28,6 +28,8 @@ con render en Metal y controles táctiles personalizables. Hice este fork porque
   20 FPS en iPhone.
 - **Aprovechar la resolución real de la pantalla.** El juego y los menús se
   dibujaban a un tercio de la resolución del panel.
+- **Jugar en la tele.** Conectar el iPhone o iPad a una pantalla externa y usar
+  el dispositivo como control.
 - **Menús más cómodos en pantalla táctil.**
 
 Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
@@ -35,7 +37,7 @@ Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
 
 ## Qué cambia respecto del original
 
-| | MaskPad 0.2.1 (original) | Este fork 0.3.1 |
+| | MaskPad 0.2.1 (original) | Este fork 0.4.0 |
 |---|---|---|
 | Upstream | 2 Ship 2 Harkinian 4.0.2 "Keiichi Charlie" | **2 Ship 2 Harkinian 5.0.1 "Battler Bravo"** |
 | FPS / ProMotion | Interpolaba a 120 pero iOS presentaba a 60 | Interpola a la tasa real de la pantalla: 120 Hz con ProMotion, 60 Hz en modo de bajo consumo |
@@ -43,6 +45,9 @@ Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
 | Tope de FPS | — | **Lock at 60 FPS**, opcional, para jugar a resolución nativa con 60 estables |
 | Menús táctiles | Sin scroll con el dedo. La barra de categorías tapaba los textos | Scroll con un dedo e inercia, sin mover sliders por accidente. Tooltips con el dedo quieto. Categorías sin barra encima |
 | Aviso de caída de FPS | Saltaba en falso con Match Refresh Rate | Compara con el objetivo real de FPS |
+| Pantalla externa | Solo duplicaba la pantalla | **Extend to External Display**: el juego a pantalla completa en la tele o el monitor (USB-C/HDMI o AirPlay) y el dispositivo como control |
+| Controles táctiles | Se ocultaban a mano | Se ocultan solos al conectar un control (queda el botón de menú) |
+| Controles de juego en iPadOS 26+ | El control también escribía teclas (flechas, Return, Escape) | Corregido: el control solo actúa como control |
 | Metal | — | Caché de estados de depth-stencil |
 | Bundle ID | `com.chrissotraidis.maskpad` | `cl.mtbolanoss.maskpad` |
 
@@ -57,6 +62,21 @@ En **Settings → Graphics**:
   encendida: fija la interpolación en 60 y bloquea el slider de FPS, que
   conserva tu valor. Si apagas la resolución nativa, la opción queda en pausa con
   su marca y vuelve a aplicarse al encenderla.
+
+### Pantalla externa
+
+Con **Extend to External Display** activado (viene así por defecto, en
+**Settings → Graphics**), al conectar una tele o un monitor:
+
+- El juego pasa a pantalla completa en la pantalla externa, a su resolución real
+  de salida. Si pesa demasiado, baja **Internal Resolution**.
+- El dispositivo muestra un ícono de tele y, encima, los controles táctiles, o
+  solo el botón de menú si hay un control conectado.
+- El menú abierto con el botón `•••` aparece en el dispositivo mientras está
+  abierto. Abierto desde un control, aparece en la pantalla externa.
+- Native Screen Resolution y Lock at 60 FPS no aplican mientras haya una pantalla
+  externa: se ven oscurecidos y conservan su valor.
+- Con la opción apagada, la pantalla se duplica como siempre.
 
 ### Scroll táctil en los menús
 
@@ -90,7 +110,7 @@ scripts/build-ios.sh --device
 scripts/package-unsigned-ipa.sh
 ```
 
-El resultado es `artifacts/MaskPad-0.3.1-unsigned.ipa`. Fírmalo con tu
+El resultado es `artifacts/MaskPad-0.4.0-unsigned.ipa`. Fírmalo con tu
 herramienta de sideloading de siempre. Cada push también compila en GitHub
 Actions. Para el simulador, la firma con tu propio equipo de desarrollo y el
 detalle completo, ver [`docs/building.md`](docs/building.md) (en inglés).

@@ -1,3 +1,4 @@
+#import <GameController/GameController.h>
 #import <UIKit/UIKit.h>
 
 #include <algorithm>
@@ -13,6 +14,29 @@ static std::atomic_bool sTouchControlsMenuVisible(false);
 static std::atomic_bool sLayoutEditorActive(false);
 static BOOL sLayoutEditorRequested;
 static std::atomic_bool sNativeHudTouchDesired(false);
+static void MaskPad_ApplyTouchControlsState(void);
+// A connected game controller hides the touch controls (the menu button stays).
+static std::atomic_bool sGameControllerConnected(false);
+static bool sAutoHideDisabled = false; // UI tests run with the touch controls always available
+
+// Only real gamepads count (a full gamepad profile); other GameController devices do not hide the controls.
+static bool MaskPad_GamepadConnected(void) {
+    for (GCController* controller in GCController.controllers) {
+        if (controller.extendedGamepad != nil) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// libultraship's external display support (Extend to External Display).
+extern "C" void* ShipIOS_TouchHostWindow(void);
+extern "C" int LUS_IOSIsExtendedToExternalDisplay(void);
+
+// The game's own HUD can't line up with touch targets while it is drawn on an external display.
+static bool MaskPad_NativeHudTouchActive(void) {
+    return sNativeHudTouchDesired.load() && !LUS_IOSIsExtendedToExternalDisplay();
+}
 static std::atomic_bool sNativeHudTouchGameplayActive(false);
 static std::atomic<float> sNativeHudButtonCenters[MASKPAD_HUD_BUTTON_COUNT][2];
 static std::atomic<float> sNativeHudButtonWidths[MASKPAD_HUD_BUTTON_COUNT];
@@ -1238,7 +1262,7 @@ static MaskPadTouchButton* sMenuButton;
 
 - (void)applyNativeHudVisualState {
     const BOOL hideUIKitFaceButtons =
-        sTouchControlsDesired.load() && sNativeHudTouchDesired.load() &&
+        sTouchControlsDesired.load() && MaskPad_NativeHudTouchActive() &&
         sNativeHudTouchGameplayActive.load() && !sTouchControlsMenuVisible.load() &&
         !sLayoutEditorActive.load();
     for (MaskPadTouchButton* button in
@@ -1376,6 +1400,11 @@ static void MaskPad_UpdateUITestGameplayInputProbe(NSString* value) {
 #endif
 
 static UIWindow* MaskPad_ActiveWindow(void) {
+    // While the game is on an external display, the controls live on this device's own window.
+    UIWindow* host = (__bridge UIWindow*)ShipIOS_TouchHostWindow();
+    if (host != nil) {
+        return host;
+    }
     for (UIScene* scene in UIApplication.sharedApplication.connectedScenes) {
         if (![scene isKindOfClass:UIWindowScene.class]) {
             continue;
@@ -1511,6 +1540,17 @@ static void MaskPad_InstallLifecycleObservers(void) {
     }
     sLifecycleObserversInstalled = YES;
     NSNotificationCenter* notifications = NSNotificationCenter.defaultCenter;
+    sGameControllerConnected.store(MaskPad_GamepadConnected());
+    for (NSNotificationName name in @[ GCControllerDidConnectNotification, GCControllerDidDisconnectNotification ]) {
+        [notifications addObserverForName:name
+                                   object:nil
+                                    queue:NSOperationQueue.mainQueue
+                               usingBlock:^(NSNotification* notification) {
+                                   (void)notification;
+                                   sGameControllerConnected.store(MaskPad_GamepadConnected());
+                                   MaskPad_ApplyTouchControlsState();
+                               }];
+    }
     for (NSNotificationName name in
          @[ UIApplicationWillResignActiveNotification,
             UIApplicationDidEnterBackgroundNotification ]) {
@@ -1535,7 +1575,10 @@ static void MaskPad_ApplyTouchControlsState(void) {
     }
 
     MaskPad_InstallMenuButton(window);
-    if (!sTouchControlsDesired.load() || sTouchControlsMenuVisible.load()) {
+    const bool hiddenForController =
+        sGameControllerConnected.load() && !sAutoHideDisabled && !sLayoutEditorRequested &&
+        !sLayoutEditorActive.load();
+    if (!sTouchControlsDesired.load() || sTouchControlsMenuVisible.load() || hiddenForController) {
         if (sTouchOverlay.layoutEditing) {
             [sTouchOverlay endLayoutEditing];
         }
@@ -1651,6 +1694,7 @@ void MaskPad_RunUITestMode(void) {
             [sUITestWindow makeKeyAndVisible];
         }
         MaskPad_InstallLifecycleObservers();
+        sAutoHideDisabled = true;
         const BOOL editing =
             [environment[@"MASKPAD_UI_TEST_MODE"] isEqualToString:@"editor"];
         sTouchControlsDesired.store(true);
@@ -1803,7 +1847,7 @@ void MaskPad_SetNativeHudTouchGameplayActive(int active) {
 
 int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, float* y) {
     if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || x == nullptr || y == nullptr ||
-        aspectRatio <= 0.0f || !sTouchControlsDesired.load() || !sNativeHudTouchDesired.load() ||
+        aspectRatio <= 0.0f || !sTouchControlsDesired.load() || !MaskPad_NativeHudTouchActive() ||
         !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
         sLayoutEditorActive.load()) {
         return 0;
@@ -1824,7 +1868,7 @@ int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, fl
 
 float MaskPad_GetNativeHudButtonScale(int button, float aspectRatio) {
     if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || aspectRatio <= 0.0f ||
-        !sTouchControlsDesired.load() || !sNativeHudTouchDesired.load() ||
+        !sTouchControlsDesired.load() || !MaskPad_NativeHudTouchActive() ||
         !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
         sLayoutEditorActive.load()) {
         return 1.0f;
@@ -1846,13 +1890,23 @@ float MaskPad_GetNativeHudButtonScale(int button, float aspectRatio) {
 
 int MaskPad_GetNativeHudTouchAlpha(int alpha) {
     const bool nativeTouchArtworkVisible =
-        sTouchControlsDesired.load() && sNativeHudTouchDesired.load() &&
+        sTouchControlsDesired.load() && MaskPad_NativeHudTouchActive() &&
         sNativeHudTouchGameplayActive.load() && !sTouchControlsMenuVisible.load() &&
         !sLayoutEditorActive.load();
     if (!nativeTouchArtworkVisible) {
         return std::clamp(alpha, 0, 255);
     }
     return std::clamp(static_cast<int>(alpha * sTouchControlsOpacity.load() + 0.5f), 0, 255);
+}
+
+// libultraship moved the game between this device and an external display.
+extern "C" void ShipIOS_TouchHostChanged(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        MaskPad_ApplyTouchControlsState();
+        [sTouchOverlay setNeedsLayout];
+        [sTouchOverlay layoutIfNeeded];
+        [sTouchOverlay applyNativeHudVisualState];
+    });
 }
 
 // libultraship's GUI reports menu visibility through a port-neutral hook.
