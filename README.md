@@ -37,7 +37,7 @@ Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
 
 ## Qué cambia respecto del original
 
-| | MaskPad 0.2.1 (original) | Este fork 0.4.1 |
+| | MaskPad 0.2.1 (original) | Este fork 0.5.0 |
 |---|---|---|
 | Upstream | 2 Ship 2 Harkinian 4.0.2 "Keiichi Charlie" | **2 Ship 2 Harkinian 5.0.1 "Battler Bravo"** |
 | FPS / ProMotion | Interpolaba a 120 pero iOS presentaba a 60 | Interpola a la tasa real de la pantalla: 120 Hz con ProMotion, 60 Hz en modo de bajo consumo |
@@ -46,7 +46,7 @@ Tiene un hermano: [HarkinianPad](https://github.com/Mtbolanos/harkinianpad)
 | Menús táctiles | Sin scroll con el dedo. La barra de categorías tapaba los textos | Scroll con un dedo e inercia, sin mover sliders por accidente. Tooltips con el dedo quieto. Categorías sin barra encima |
 | Aviso de caída de FPS | Saltaba en falso con Match Refresh Rate | Compara con el objetivo real de FPS |
 | Pantalla externa | Solo duplicaba la pantalla | **Extend to External Display**: el juego a pantalla completa en la tele o el monitor (USB-C/HDMI o AirPlay) y el dispositivo como control |
-| Controles táctiles | Se ocultaban a mano | Se ocultan solos al conectar un control (queda el botón de menú) |
+| Controles táctiles | Escribían teclas del teclado y el stick era digital. Se ocultaban a mano | Actúan directo como el control del jugador 1, con mapeo fijo y stick análogo. **Touch Camera Stick** opcional para Free Look y vibración al presionar. Se ocultan solos al conectar un control (queda el botón de menú) |
 | Controles de juego en iPadOS 26+ | El control también escribía teclas (flechas, Return, Escape) | Corregido: el control solo actúa como control |
 | Metal | — | Caché de estados de depth-stencil |
 | Bundle ID | `com.chrissotraidis.maskpad` | `cl.mtbolanoss.maskpad` |
@@ -62,6 +62,19 @@ En **Settings → Graphics**:
   encendida: fija la interpolación en 60 y bloquea el slider de FPS, que
   conserva tu valor. Si apagas la resolución nativa, la opción queda en pausa con
   su marca y vuelve a aplicarse al encenderla.
+
+### Controles táctiles
+
+En **Settings → Controls**:
+
+- Los botones táctiles actúan directo sobre el control del jugador 1, con un mapeo
+  fijo: A es siempre A, C-Up es siempre C-Up, sin importar los bindings. El
+  teclado queda libre, y el stick táctil es análogo (con una zona muerta pequeña).
+- **Touch Camera Stick** (apagado por defecto) agrega un segundo stick que actúa
+  como el stick derecho, para Free Look (hay que activar Free Look). Se mueve y
+  cambia de tamaño en **Customize Touch Layout**.
+- **Touch Haptics** (encendido por defecto): vibración suave al presionar un
+  botón táctil.
 
 ### Pantalla externa
 
@@ -112,7 +125,7 @@ scripts/build-ios.sh --device
 scripts/package-unsigned-ipa.sh
 ```
 
-El resultado es `artifacts/MaskPad-0.4.1-unsigned.ipa`. Fírmalo con tu
+El resultado es `artifacts/MaskPad-0.5.0-unsigned.ipa`. Fírmalo con tu
 herramienta de sideloading de siempre. Cada push también compila en GitHub
 Actions. Para el simulador, la firma con tu propio equipo de desarrollo y el
 detalle completo, ver [`docs/building.md`](docs/building.md) (en inglés).

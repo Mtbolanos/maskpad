@@ -69,7 +69,7 @@ index 73779aab6..df49f83ec 100644
          Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetGyro()->GetGyroMapping();
      if (mapping != nullptr) {
 diff --git a/mm/2s2h/BenGui/BenMenu.cpp b/mm/2s2h/BenGui/BenMenu.cpp
-index f568c665e..362db5dac 100644
+index f568c665e..ddc3beb81 100644
 --- a/mm/2s2h/BenGui/BenMenu.cpp
 +++ b/mm/2s2h/BenGui/BenMenu.cpp
 @@ -20,6 +20,10 @@
@@ -152,7 +152,7 @@ index f568c665e..362db5dac 100644
      AddWidget(path, "Enable Vsync", WIDGET_CVAR_CHECKBOX)
          .CVar(CVAR_VSYNC_ENABLED)
          .PreFunc([](WidgetInfo& info) { info.isHidden = mBenMenu->disabledMap.at(DISABLE_FOR_NO_VSYNC).active; })
-@@ -643,6 +691,71 @@ void BenMenu::AddSettings() {
+@@ -643,6 +691,83 @@ void BenMenu::AddSettings() {
  
      path.sidebarName = "Controls";
      AddSidebarEntry("Settings", "Controls", 1);
@@ -193,6 +193,18 @@ index f568c665e..362db5dac 100644
 +                     .Max(1.0f)
 +                     .DefaultValue(0.5f)
 +                     .Tooltip("Sets touch-control opacity. Lower values show more of the game beneath them."));
++    AddWidget(path, "Touch Camera Stick", WIDGET_CVAR_CHECKBOX)
++        .CVar("gSettings.MaskPad.TouchCameraStick")
++        .Callback([](WidgetInfo& info) {
++            MaskPad_SetTouchCameraStickEnabled(CVarGetInteger("gSettings.MaskPad.TouchCameraStick", 0));
++        })
++        .Options(CheckboxOptions()
++                     .DefaultValue(false)
++                     .Tooltip("Adds a second touch stick that works as the right stick, for Free Look (Free Look "
++                              "must be enabled). Its position and size can be changed in the touch layout editor."));
++    AddWidget(path, "Touch Haptics", WIDGET_CVAR_CHECKBOX)
++        .CVar("gSettings.MaskPad.TouchHaptics")
++        .Options(CheckboxOptions().DefaultValue(true).Tooltip("Light vibration when a touch button is pressed."));
 +    AddWidget(path, "Legacy Fixed Touch Controls", WIDGET_CVAR_CHECKBOX)
 +        .CVar("gSettings.MaskPad.LegacyFixedTouchControls")
 +        .Callback([](WidgetInfo& info) {
@@ -224,7 +236,7 @@ index f568c665e..362db5dac 100644
      AddWidget(path, "Popout Bindings Window", WIDGET_WINDOW_BUTTON)
          .CVar("gWindows.BenInputEditor")
          .WindowName("2S2H Input Editor")
-@@ -2303,6 +2416,20 @@ void BenMenu::InitElement() {
+@@ -2303,6 +2428,20 @@ void BenMenu::InitElement() {
          { DISABLE_FOR_MATCH_REFRESH_RATE_ON,
            { [](disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
              "Match Refresh Rate is Enabled" } },

@@ -8,6 +8,7 @@ int MaskPad_TouchControlsAvailable(void);
 void MaskPad_SetTouchControlsEnabled(int enabled);
 void MaskPad_SetCustomizableTouchControlsEnabled(int enabled);
 void MaskPad_SetTouchControlsOpacity(float opacity);
+void MaskPad_SetTouchCameraStickEnabled(int enabled);
 void MaskPad_BeginTouchLayoutEditing(void);
 void MaskPad_RunUITestMode(void);
 void MaskPad_SetTouchControlsMenuVisible(int visible);
