@@ -87,6 +87,8 @@ Con **Extend to External Display** activado (viene así por defecto, en
 - Las barras de scroll laterales se agarran y arrastran como en un navegador.
 - Los controles táctiles del juego no pasan por este filtro.
 
+El historial de versiones está en [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Cómo compilarlo
 
 Este repositorio no publica apps compiladas. Cada quien
