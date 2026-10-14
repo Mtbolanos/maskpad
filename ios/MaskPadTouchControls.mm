@@ -82,6 +82,9 @@ static bool MaskPad_NativeHudTouchActive(void) {
 static std::atomic_bool sNativeHudTouchGameplayActive(false);
 // The game's ocarina/instrument is out: the game hides the face buttons then, so the normal touch buttons are shown.
 static std::atomic_bool sInstrumentActive(false);
+// The overlay is on screen (enabled, not auto-hidden for a controller, not hidden for the menu). Only then does the
+// game place and fade its A/B/C artwork for the touch layout.
+static std::atomic_bool sTouchOverlayShown(false);
 static std::atomic<float> sNativeHudButtonCenters[MASKPAD_HUD_BUTTON_COUNT][2];
 static std::atomic<float> sNativeHudButtonWidths[MASKPAD_HUD_BUTTON_COUNT];
 static void MaskPad_ApplyTouchControlsState(void);
@@ -1687,6 +1690,7 @@ static void MaskPad_ApplyTouchControlsState(void) {
         [sTouchOverlay cancelAllInputs];
         [sTouchOverlay removeFromSuperview];
         sTouchOverlay = nil;
+        sTouchOverlayShown.store(false);
         if (!sTouchControlsDesired.load()) {
             sLayoutEditorRequested = NO;
         }
@@ -1710,6 +1714,7 @@ static void MaskPad_ApplyTouchControlsState(void) {
         [sTouchOverlay beginLayoutEditing];
     }
     [sTouchOverlay applyNativeHudVisualState];
+    sTouchOverlayShown.store(true);
     [window bringSubviewToFront:sTouchOverlay];
     if (!sLayoutEditorActive.load()) {
         [window bringSubviewToFront:sMenuButton];
@@ -1981,7 +1986,7 @@ void MaskPad_SetNativeHudTouchGameplayActive(int active) {
 
 // True while the dynamic touch layout positions this face button in the native HUD.
 int MaskPad_NativeHudPlacesButton(int button) {
-    if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || !sTouchControlsDesired.load() ||
+    if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || !sTouchOverlayShown.load() ||
         !MaskPad_NativeHudTouchActive() || !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
         sLayoutEditorActive.load()) {
         return 0;
@@ -1993,7 +1998,7 @@ int MaskPad_NativeHudPlacesButton(int button) {
 
 int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, float* y) {
     if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || x == nullptr || y == nullptr ||
-        aspectRatio <= 0.0f || !sTouchControlsDesired.load() || !MaskPad_NativeHudTouchActive() ||
+        aspectRatio <= 0.0f || !sTouchOverlayShown.load() || !MaskPad_NativeHudTouchActive() ||
         !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
         sLayoutEditorActive.load()) {
         return 0;
@@ -2014,7 +2019,7 @@ int MaskPad_GetNativeHudButtonCenter(int button, float aspectRatio, float* x, fl
 
 float MaskPad_GetNativeHudButtonScale(int button, float aspectRatio) {
     if (button < 0 || button >= MASKPAD_HUD_BUTTON_COUNT || aspectRatio <= 0.0f ||
-        !sTouchControlsDesired.load() || !MaskPad_NativeHudTouchActive() ||
+        !sTouchOverlayShown.load() || !MaskPad_NativeHudTouchActive() ||
         !sNativeHudTouchGameplayActive.load() || sTouchControlsMenuVisible.load() ||
         sLayoutEditorActive.load()) {
         return 1.0f;
@@ -2036,7 +2041,7 @@ float MaskPad_GetNativeHudButtonScale(int button, float aspectRatio) {
 
 int MaskPad_GetNativeHudTouchAlpha(int alpha) {
     const bool nativeTouchArtworkVisible =
-        sTouchControlsDesired.load() && MaskPad_NativeHudTouchActive() &&
+        sTouchOverlayShown.load() && MaskPad_NativeHudTouchActive() &&
         sNativeHudTouchGameplayActive.load() && !sTouchControlsMenuVisible.load() &&
         !sLayoutEditorActive.load();
     if (!nativeTouchArtworkVisible) {

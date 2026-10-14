@@ -3,6 +3,11 @@
 Versión y build de cada IPA (`version.json`). Los builds intermedios de prueba se compilaron en ramas
 aparte y no se listan.
 
+## 0.5.2 (build 20)
+
+- Con un mando conectado, los botones A, B y C del juego vuelven a su posición, tamaño y opacidad
+  originales aunque los controles táctiles dinámicos estén activos (antes quedaban en el layout táctil).
+
 ## 0.5.1 (build 19)
 
 - Con los controles táctiles dinámicos, al sacar la ocarina (o los instrumentos de las transformaciones)
