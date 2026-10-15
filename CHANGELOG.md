@@ -3,6 +3,12 @@
 Versión y build de cada IPA (`version.json`). Los builds intermedios de prueba se compilaron en ramas
 aparte y no se listan.
 
+## 0.5.3 (build 21)
+
+- Menús táctiles: los bordes y la esquina de las ventanas flotantes (Check Tracker, etc.) se pueden
+  arrastrar en cualquier dirección para redimensionarlas, y en lo que no tiene scroll vertical (por
+  ejemplo los selectores de color) el arrastre vertical va al control en vez de perderse.
+
 ## 0.5.2 (build 20)
 
 - Con un mando conectado, los botones A, B y C del juego vuelven a su posición, tamaño y opacidad

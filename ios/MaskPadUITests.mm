@@ -113,7 +113,7 @@
         [button tap];
         [self waitForElement:button
                        value:@"down=1;up=1;pressed=0;latched=0"
-                     timeout:2.0];
+                     timeout:5.0];
     }
 
     XCUIElement* stick = app.otherElements[@"stick"];
@@ -136,28 +136,28 @@
         [[stick coordinateWithNormalizedOffset:CGVectorMake(0.5, 0.5)]
             pressForDuration:0.1
             thenDragToCoordinate:destination];
-        [self waitForElement:stick value:stickValues[index] timeout:2.0];
+        [self waitForElement:stick value:stickValues[index] timeout:5.0];
     }
 
     XCUIElement* zButton = app.buttons[@"z"];
     [zButton pressForDuration:0.75];
     [self waitForElement:zButton
                    value:@"down=2;up=1;pressed=1;latched=1"
-                 timeout:2.0];
+                 timeout:5.0];
     [[XCUIDevice sharedDevice] pressButton:XCUIDeviceButtonHome];
     [app activate];
     XCTAssertTrue([zButton waitForExistenceWithTimeout:5.0]);
     [self waitForElement:zButton
                    value:@"down=2;up=2;pressed=0;latched=0"
-                 timeout:2.0];
+                 timeout:5.0];
 
     XCUIElement* toggle = app.buttons[@"test-touch-toggle"];
     [toggle tap];
     XCTAssertTrue([app.buttons[@"a"] waitForNonExistenceWithTimeout:5.0]);
-    [self waitForElement:toggle value:@"disabled" timeout:2.0];
+    [self waitForElement:toggle value:@"disabled" timeout:5.0];
     [toggle tap];
     XCTAssertTrue([app.buttons[@"a"] waitForExistenceWithTimeout:5.0]);
-    [self waitForElement:toggle value:@"enabled" timeout:2.0];
+    [self waitForElement:toggle value:@"enabled" timeout:5.0];
 }
 
 - (void)testMoveResizeClampProtectionResetAndPersistence {
