@@ -6,7 +6,7 @@ SOURCE="$ROOT/sources/2ship2harkinian"
 BUILD="${MASKPAD_HOST_BUILD_DIR:-$ROOT/build-host}"
 
 "$ROOT/scripts/apply-patches.sh"
-cmake -S "$SOURCE" -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -S "$SOURCE" -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DSKIP_NETWORKING=1
 cmake --build "$BUILD" --target Generate2ShipOtr
 
 ARCHIVE="$SOURCE/mm/2ship.o2r"

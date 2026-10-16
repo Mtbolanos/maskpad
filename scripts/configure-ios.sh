@@ -6,7 +6,7 @@ SOURCE="$ROOT/sources/2ship2harkinian"
 MODE="${1:---simulator}"
 # Xcode 27 accepts iOS deployment targets from 15.0; older Xcode also builds 15.0.
 DEPLOYMENT_TARGET="${MASKPAD_DEPLOYMENT_TARGET:-15.0}"
-BUNDLE_ID="${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpad}"
+BUNDLE_ID="${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpadap}"
 # One version for the app, its release and PadMint: version.json.
 VERSION="${MASKPAD_VERSION:-$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/version.json")}"
 BUILD_NUMBER="${MASKPAD_BUILD_NUMBER:-$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["build"])' "$ROOT/version.json")}"
@@ -40,6 +40,7 @@ cmake -S "$SOURCE" -B "$BUILD" -G Xcode \
     -DMASKPAD_VERSION="$VERSION" \
     -DMASKPAD_BUILD_NUMBER="$BUILD_NUMBER" \
     -DMASKPAD_BUILD_UI_TESTS="$BUILD_UI_TESTS" \
+    -DBUILD_ARCHIPELAGO=ON \
     -DCMAKE_XCODE_GENERATE_SCHEME=ON
 
 echo "Configured $PLATFORM at $BUILD"

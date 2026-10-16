@@ -94,3 +94,69 @@ target_include_directories(opusfile
 )
 target_link_libraries(opusfile PUBLIC Ogg::ogg Opus::opus)
 add_library(OpusFile::opusfile ALIAS opusfile)
+
+# --- MaskPad AP: OpenSSL for Archipelago ------------------------------------------------------------
+# garrettjoecox's Archipelago client (apclientpp/websocketpp/asio) connects over TLS with OpenSSL, which
+# the iOS SDK does not ship. Build a static OpenSSL 3.5 LTS once per build directory (kept with _deps, so
+# the CI cache and the Mac runner reuse it) and point FindOpenSSL at it.
+set(MASKPAD_OPENSSL_VERSION "3.5.9")
+set(MASKPAD_OPENSSL_SHA256 "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a")
+if(PLATFORM STREQUAL "SIMULATORARM64")
+    set(MASKPAD_OPENSSL_TARGET "iossimulator-arm64-xcrun")
+else()
+    set(MASKPAD_OPENSSL_TARGET "ios64-xcrun")
+endif()
+set(MASKPAD_OPENSSL_PREFIX "${CMAKE_BINARY_DIR}/_deps/openssl-${MASKPAD_OPENSSL_VERSION}-${MASKPAD_OPENSSL_TARGET}")
+if(NOT EXISTS "${MASKPAD_OPENSSL_PREFIX}/lib/libssl.a" OR NOT EXISTS "${MASKPAD_OPENSSL_PREFIX}/lib/libcrypto.a")
+    set(_maskpad_openssl_archive "${CMAKE_BINARY_DIR}/_deps/openssl-${MASKPAD_OPENSSL_VERSION}.tar.gz")
+    set(_maskpad_openssl_source "${CMAKE_BINARY_DIR}/_deps/openssl-${MASKPAD_OPENSSL_VERSION}-src")
+    file(DOWNLOAD
+        "https://github.com/openssl/openssl/releases/download/openssl-${MASKPAD_OPENSSL_VERSION}/openssl-${MASKPAD_OPENSSL_VERSION}.tar.gz"
+        "${_maskpad_openssl_archive}"
+        EXPECTED_HASH SHA256=${MASKPAD_OPENSSL_SHA256}
+        TLS_VERIFY ON
+    )
+    file(REMOVE_RECURSE "${_maskpad_openssl_source}")
+    file(ARCHIVE_EXTRACT INPUT "${_maskpad_openssl_archive}" DESTINATION "${_maskpad_openssl_source}")
+    set(_maskpad_openssl_tree "${_maskpad_openssl_source}/openssl-${MASKPAD_OPENSSL_VERSION}")
+    cmake_host_system_information(RESULT _maskpad_jobs QUERY NUMBER_OF_LOGICAL_CORES)
+    message(STATUS "MaskPad AP: building OpenSSL ${MASKPAD_OPENSSL_VERSION} for ${MASKPAD_OPENSSL_TARGET}")
+    execute_process(
+        COMMAND perl Configure ${MASKPAD_OPENSSL_TARGET} no-shared no-tests no-apps no-docs no-module
+            "-mios-version-min=${DEPLOYMENT_TARGET}"
+            "--prefix=${MASKPAD_OPENSSL_PREFIX}" --libdir=lib
+        WORKING_DIRECTORY "${_maskpad_openssl_tree}"
+        RESULT_VARIABLE _maskpad_openssl_result
+    )
+    if(NOT _maskpad_openssl_result EQUAL 0)
+        message(FATAL_ERROR "OpenSSL Configure failed (${_maskpad_openssl_result})")
+    endif()
+    execute_process(
+        COMMAND make -j${_maskpad_jobs} build_libs
+        WORKING_DIRECTORY "${_maskpad_openssl_tree}"
+        RESULT_VARIABLE _maskpad_openssl_result
+        OUTPUT_QUIET
+    )
+    if(NOT _maskpad_openssl_result EQUAL 0)
+        message(FATAL_ERROR "OpenSSL build failed (${_maskpad_openssl_result})")
+    endif()
+    execute_process(
+        COMMAND make install_dev
+        WORKING_DIRECTORY "${_maskpad_openssl_tree}"
+        RESULT_VARIABLE _maskpad_openssl_result
+        OUTPUT_QUIET
+    )
+    if(NOT _maskpad_openssl_result EQUAL 0)
+        message(FATAL_ERROR "OpenSSL install failed (${_maskpad_openssl_result})")
+    endif()
+    file(REMOVE_RECURSE "${_maskpad_openssl_source}")
+endif()
+set(OPENSSL_ROOT_DIR "${MASKPAD_OPENSSL_PREFIX}" CACHE PATH "" FORCE)
+set(OPENSSL_INCLUDE_DIR "${MASKPAD_OPENSSL_PREFIX}/include" CACHE PATH "" FORCE)
+set(OPENSSL_CRYPTO_LIBRARY "${MASKPAD_OPENSSL_PREFIX}/lib/libcrypto.a" CACHE FILEPATH "" FORCE)
+set(OPENSSL_SSL_LIBRARY "${MASKPAD_OPENSSL_PREFIX}/lib/libssl.a" CACHE FILEPATH "" FORCE)
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+
+# The CA list the app installs for Archipelago (MaskPadAPSupport.mm): the build Mac's system list.
+set(MASKPAD_CA_BUNDLE "${CMAKE_BINARY_DIR}/maskpad-cacert-bundle.crt")
+configure_file("/etc/ssl/cert.pem" "${MASKPAD_CA_BUNDLE}" COPYONLY)

@@ -60,7 +60,7 @@ jobs:
           path: |
             build-host/_deps
             build-ios-device/_deps
-          key: maskpad-ios-${{ runner.os }}-${{ hashFiles('patches/**', 'port/**', 'scripts/*.sh') }}
+          key: maskpadap-ios-${{ runner.os }}-${{ hashFiles('patches/**', 'port/**', 'scripts/*.sh') }}
 
       - name: Reconstruct pinned source
         run: |
@@ -97,13 +97,15 @@ jobs:
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: MaskPad-unsigned-ipa
+          name: MaskPadAP-unsigned-ipa
           path: artifacts/*-unsigned.ipa
           if-no-files-found: error
           retention-days: 30
 
   simulator-tests:
     name: ROM-free Simulator UI
+    # MaskPad AP: skipped (the UI harness would build the whole app and OpenSSL again for the Simulator).
+    if: false
     runs-on: macos-15
     timeout-minutes: 120
     needs: repository-safety

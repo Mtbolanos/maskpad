@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index a9378e8e9..fb70fd78a 100644
+index 69fe7479a..bb6089b3f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -1,6 +1,14 @@
@@ -18,7 +18,7 @@ index a9378e8e9..fb70fd78a 100644
  set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
  
  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
-@@ -73,6 +81,11 @@ set(GBI_UCODE F3DEX_GBI_2)
+@@ -87,6 +95,11 @@ set(GBI_UCODE F3DEX_GBI_2)
  
  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
  
@@ -30,7 +30,7 @@ index a9378e8e9..fb70fd78a 100644
  # Enable MPQ and OTR support
  set(INCLUDE_MPQ_SUPPORT ON)
  
-@@ -168,7 +181,8 @@ target_compile_definitions(libultraship PUBLIC INCLUDE_MPQ_SUPPORT)
+@@ -188,7 +201,8 @@ target_compile_definitions(libultraship PUBLIC INCLUDE_MPQ_SUPPORT)
  
  # LUS ships no PCH of its own and these headers dominate its build. Done here rather than in the
  # submodule, and PRIVATE, so nothing about its public interface changes.
@@ -40,7 +40,7 @@ index a9378e8e9..fb70fd78a 100644
      target_precompile_headers(libultraship PRIVATE
          "$<$<COMPILE_LANGUAGE:CXX>:<ship/Context.h$<ANGLE-R>>"
          "$<$<COMPILE_LANGUAGE:CXX>:<ship/resource/ResourceManager.h$<ANGLE-R>>"
-@@ -186,6 +200,12 @@ endif()
+@@ -206,6 +220,12 @@ endif()
  
  add_subdirectory(ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
  add_subdirectory(OTRExporter)
@@ -54,7 +54,7 @@ index a9378e8e9..fb70fd78a 100644
  
  set_property(TARGET 2ship PROPERTY APPIMAGE_DESKTOP_FILE_TERMINAL YES)
 diff --git a/mm/2s2h/BenGui/BenInputEditorWindow.cpp b/mm/2s2h/BenGui/BenInputEditorWindow.cpp
-index 73779aab6..df49f83ec 100644
+index 8a4ed2621..0130a7b2c 100644
 --- a/mm/2s2h/BenGui/BenInputEditorWindow.cpp
 +++ b/mm/2s2h/BenGui/BenInputEditorWindow.cpp
 @@ -1133,6 +1133,10 @@ void BenInputEditorWindow::DrawAddGyroMappingButton(uint8_t port) {
@@ -69,7 +69,7 @@ index 73779aab6..df49f83ec 100644
          Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetGyro()->GetGyroMapping();
      if (mapping != nullptr) {
 diff --git a/mm/2s2h/BenGui/BenMenu.cpp b/mm/2s2h/BenGui/BenMenu.cpp
-index f568c665e..053ef84bf 100644
+index 29c6204d5..030212031 100644
 --- a/mm/2s2h/BenGui/BenMenu.cpp
 +++ b/mm/2s2h/BenGui/BenMenu.cpp
 @@ -20,6 +20,10 @@
@@ -83,7 +83,7 @@ index f568c665e..053ef84bf 100644
  
  #include <fast/Fast3dGui.h>
  #include <fast/Fast3dWindow.h>
-@@ -549,9 +553,47 @@ void BenMenu::AddSettings() {
+@@ -559,9 +563,47 @@ void BenMenu::AddSettings() {
      path.column = SECTION_COLUMN_1;
      AddSidebarEntry("Settings", "Graphics", 3);
      AddWidget(path, "Graphics Options", WIDGET_SEPARATOR_TEXT);
@@ -131,7 +131,7 @@ index f568c665e..053ef84bf 100644
      AddWidget(path, "Internal Resolution: %.0f%%", WIDGET_CVAR_SLIDER_FLOAT)
          .CVar(CVAR_INTERNAL_RESOLUTION)
          .Callback([](WidgetInfo& info) {
-@@ -605,6 +647,10 @@ void BenMenu::AddSettings() {
+@@ -615,6 +657,10 @@ void BenMenu::AddSettings() {
          .PreFunc([](WidgetInfo& info) {
              if (mBenMenu->disabledMap.at(DISABLE_FOR_MATCH_REFRESH_RATE_ON).active)
                  info.activeDisables.push_back(DISABLE_FOR_MATCH_REFRESH_RATE_ON);
@@ -142,7 +142,7 @@ index f568c665e..053ef84bf 100644
          })
          .Options(IntSliderOptions().Min(20).Max(360).DefaultValue(20).Tooltip(
              "Uses Matrix Interpolation to create extra frames, resulting in smoother graphics. "
-@@ -614,7 +660,9 @@ void BenMenu::AddSettings() {
+@@ -624,7 +670,9 @@ void BenMenu::AddSettings() {
      AddWidget(path, "Match Refresh Rate", WIDGET_CVAR_CHECKBOX)
          .CVar("gMatchRefreshRate")
          .Options(CheckboxOptions().Tooltip("Matches interpolation value to the refresh rate of your display."));
@@ -152,7 +152,7 @@ index f568c665e..053ef84bf 100644
      AddWidget(path, "Enable Vsync", WIDGET_CVAR_CHECKBOX)
          .CVar(CVAR_VSYNC_ENABLED)
          .PreFunc([](WidgetInfo& info) { info.isHidden = mBenMenu->disabledMap.at(DISABLE_FOR_NO_VSYNC).active; })
-@@ -643,6 +691,84 @@ void BenMenu::AddSettings() {
+@@ -653,6 +701,84 @@ void BenMenu::AddSettings() {
  
      path.sidebarName = "Controls";
      AddSidebarEntry("Settings", "Controls", 1);
@@ -237,7 +237,7 @@ index f568c665e..053ef84bf 100644
      AddWidget(path, "Popout Bindings Window", WIDGET_WINDOW_BUTTON)
          .CVar("gWindows.BenInputEditor")
          .WindowName("2S2H Input Editor")
-@@ -2303,6 +2429,20 @@ void BenMenu::InitElement() {
+@@ -2338,6 +2464,20 @@ void BenMenu::InitElement() {
          { DISABLE_FOR_MATCH_REFRESH_RATE_ON,
            { [](disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
              "Match Refresh Rate is Enabled" } },
@@ -302,7 +302,7 @@ index 1031b54df..f87eda567 100644
             (hudEditorOverrideNextElemMode != HUD_EDITOR_ELEMENT_MODE_NONE
                  ? hudEditorOverrideNextElemMode
 diff --git a/mm/2s2h/BenGui/Menu.cpp b/mm/2s2h/BenGui/Menu.cpp
-index bdd501c4c..5d29f9b0d 100644
+index 047543be4..84e61a1e4 100644
 --- a/mm/2s2h/BenGui/Menu.cpp
 +++ b/mm/2s2h/BenGui/Menu.cpp
 @@ -604,6 +604,11 @@ void Menu::DrawElement() {
@@ -409,10 +409,10 @@ index 7a55b82c2..efc15e3a2 100644
      return ImGui::GetIO().Framerate < targetFPS - threshold;
  }
 diff --git a/mm/2s2h/BenPort.cpp b/mm/2s2h/BenPort.cpp
-index 653de66ad..06340b5fb 100644
+index 29d873e00..44190bd74 100644
 --- a/mm/2s2h/BenPort.cpp
 +++ b/mm/2s2h/BenPort.cpp
-@@ -69,6 +69,11 @@ CrowdControl* CrowdControl::Instance;
+@@ -68,6 +68,12 @@
  #include "2s2h/ShipInit.hpp"
  #include "2s2h/PresetManager/PresetManager.h"
  #include "2s2h/config/ConfigUpdaters.h"
@@ -420,11 +420,12 @@ index 653de66ad..06340b5fb 100644
 +#include <cstdlib>
 +#include <cstring>
 +#include "ios/MaskPadTouchControls.h"
++#include "ios/MaskPadAPSupport.h"
 +#endif
  
  // Resource Types/Factories
  #include <ship/resource/type/Blob.h>
-@@ -292,6 +297,9 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+@@ -294,6 +300,9 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
      PromptSteps promptStep = PS_FILE_CHECK;
      bool romsFromSearch = false;
      std::atomic<size_t> extractCount = 0, totalExtract = 0;
@@ -434,7 +435,7 @@ index 653de66ad..06340b5fb 100644
  
      std::string installPath = std::filesystem::absolute(Ship::Context::GetAppBundlePath()).string();
      std::string dataPath = std::filesystem::absolute(Ship::Context::GetAppDirectoryPath(appShortName)).string();
-@@ -484,6 +492,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+@@ -486,6 +495,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                  switch (promptStep) {
                      case PS_FILE_CHECK: {
                          if (!std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("mm.o2r", appShortName))) {
@@ -446,7 +447,7 @@ index 653de66ad..06340b5fb 100644
                              BenGui::RegisterPopup(
                                  "No O2R Files", "No O2R files found. Generate one now?", "Yes", "No",
                                  [&]() { promptStep = PS_LOCAL; }, [&]() { exit(0); });
-@@ -501,6 +514,19 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+@@ -503,6 +517,19 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                              extract.GetRoms(args);
                          }
                          romsFromSearch = !args.empty();
@@ -466,7 +467,7 @@ index 653de66ad..06340b5fb 100644
                          if (!args.empty()) {
                              promptStep = PS_WAIT;
                              BenGui::RegisterPopup(
-@@ -533,6 +559,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+@@ -535,6 +562,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
              }
              case ES_VERIFY: {
                  if (!std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("mm.o2r", appShortName))) {
@@ -478,7 +479,7 @@ index 653de66ad..06340b5fb 100644
                      BenGui::RegisterPopup("No ROM Archives",
                                            "No ROM O2R files detected. Please generate a ROM O2R and relaunch.", "OK",
                                            "", [&]() { exit(0); });
-@@ -784,7 +815,20 @@ ImFont* OTRGlobals::CreateDefaultFontWithSize(float size) {
+@@ -786,7 +818,20 @@ ImFont* OTRGlobals::CreateDefaultFontWithSize(float size) {
      return font;
  }
  
@@ -499,7 +500,7 @@ index 653de66ad..06340b5fb 100644
      if (CVarGetInteger("gMatchRefreshRate", 0)) {
          return Ship::Context::GetRawInstance()->GetWindow()->GetCurrentRefreshRate();
      } else if (CVarGetInteger(CVAR_VSYNC_ENABLED, 1) ||
-@@ -960,6 +1004,14 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
+@@ -962,6 +1007,14 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
  }
  
  extern "C" void InitOTR(int argc, char* argv[]) {
@@ -514,7 +515,7 @@ index 653de66ad..06340b5fb 100644
      OTRGlobals::Instance = new OTRGlobals();
      OTRGlobals::Instance->RunExtract(argc, argv);
  
-@@ -970,6 +1022,32 @@ extern "C" void InitOTR(int argc, char* argv[]) {
+@@ -972,6 +1025,33 @@ extern "C" void InitOTR(int argc, char* argv[]) {
      conf->RunVersionUpdates();
      Ship::Context::GetRawInstance()->GetConsoleVariables()->Save();
  
@@ -542,11 +543,12 @@ index 653de66ad..06340b5fb 100644
 +    MaskPad_SetNativeHudTouchEnabled(modernTouchControls);
 +    MaskPad_SetTouchCameraStickEnabled(CVarGetInteger("gSettings.MaskPad.TouchCameraStick", 0));
 +    MaskPad_SetTouchHapticsEnabled(CVarGetInteger("gSettings.MaskPad.TouchHaptics", 1));
++    MaskPad_InstallArchipelagoCertificates();
 +#endif
 +
      GameInteractor::Instance = new GameInteractor();
      AudioCollection::Instance = new AudioCollection();
-     LoadGuiTextures();
+     Sail::Instance = new Sail();
 diff --git a/mm/2s2h/DeveloperTools/DeveloperTools.cpp b/mm/2s2h/DeveloperTools/DeveloperTools.cpp
 index bd45f0564..10f38e397 100644
 --- a/mm/2s2h/DeveloperTools/DeveloperTools.cpp
@@ -630,13 +632,13 @@ index 7478792ca..6b51b4f01 100644
  #include "SavingEnhancements.h"
  
 diff --git a/mm/2s2h/Enhancements/Timesavers/AutoBankDeposit.cpp b/mm/2s2h/Enhancements/Timesavers/AutoBankDeposit.cpp
-index 601dd4194..0fb3e4b25 100644
+index 61d41999e..85def86e4 100644
 --- a/mm/2s2h/Enhancements/Timesavers/AutoBankDeposit.cpp
 +++ b/mm/2s2h/Enhancements/Timesavers/AutoBankDeposit.cpp
-@@ -4,6 +4,11 @@
- #include "2s2h/Rando/Rando.h"
+@@ -5,6 +5,11 @@
  #include "2s2h/CustomMessage/CustomMessage.h"
  #include "2s2h/CustomItem/CustomItem.h"
+ #include "2s2h/GameInteractor/Actions/Actions.h"
 +#include <libultraship/bridge/consolevariablebridge.h>
 +
 +extern "C" {
@@ -663,11 +665,11 @@ index 233b3aedd..5c7d8155f 100644
  
  typedef enum {
 diff --git a/mm/2s2h/Rando/ConvertItem.cpp b/mm/2s2h/Rando/ConvertItem.cpp
-index 27a811764..a9c00e736 100644
+index 5c4563645..9e66f154a 100644
 --- a/mm/2s2h/Rando/ConvertItem.cpp
 +++ b/mm/2s2h/Rando/ConvertItem.cpp
-@@ -3,6 +3,7 @@
- #include "Rando/MiscBehavior/ClockShuffle.h"
+@@ -4,6 +4,7 @@
+ #include "2s2h/Network/Archipelago/Archipelago.h"
  #include "2s2h/ShipUtils.h"
  #include "2s2h/ShipInit.hpp"
 +#include <libultraship/bridge/consolevariablebridge.h>
@@ -706,10 +708,10 @@ index ab7b43dcd..2b30c0460 100644
  extern const char* sCounterTextures[];
  }
 diff --git a/mm/2s2h/Rando/Rando.h b/mm/2s2h/Rando/Rando.h
-index 80df71535..34e9d4881 100644
+index b437490e7..62c056e52 100644
 --- a/mm/2s2h/Rando/Rando.h
 +++ b/mm/2s2h/Rando/Rando.h
-@@ -4,6 +4,7 @@
+@@ -6,6 +6,7 @@
  #include "StaticData/StaticData.h"
  #include "Types.h"
  #include "variables.h"
@@ -742,10 +744,10 @@ index ce75d5972..75a86c331 100644
  }
  
 diff --git a/mm/CMakeLists.txt b/mm/CMakeLists.txt
-index d9f7f09c5..f3c80003e 100644
+index a98aa4e71..e1c75d99a 100644
 --- a/mm/CMakeLists.txt
 +++ b/mm/CMakeLists.txt
-@@ -1,11 +1,15 @@
+@@ -1,6 +1,10 @@
  cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
  
 -set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
@@ -756,6 +758,9 @@ index d9f7f09c5..f3c80003e 100644
 +endif()
  
  project(2ship LANGUAGES C CXX)
+ 
+@@ -8,7 +12,7 @@ option(BUILD_ARCHIPELAGO "Build Archipelago support" OFF)
+ 
  set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
  
 -if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -763,17 +768,18 @@ index d9f7f09c5..f3c80003e 100644
      enable_language(OBJCXX)
      set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
      set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
-@@ -96,6 +100,9 @@ source_group("include" FILES ${Header_Files__include})
+@@ -99,6 +103,10 @@ source_group("include" FILES ${Header_Files__include})
  # }}}
  
  file(GLOB_RECURSE ship__ RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "2s2h/*.c" "2s2h/*.cpp" "2s2h/*.h" "2s2h/*.hpp")
 +if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-+    list(APPEND ship__ ${CMAKE_CURRENT_SOURCE_DIR}/ios/MaskPadTouchControls.mm)
++    list(APPEND ship__ ${CMAKE_CURRENT_SOURCE_DIR}/ios/MaskPadTouchControls.mm
++                        ${CMAKE_CURRENT_SOURCE_DIR}/ios/MaskPadAPSupport.mm)
 +endif()
  # Create source groups that match the real file directory paths
  foreach(source IN LISTS ship__)
      get_filename_component(source_path "${source}" PATH)
-@@ -126,7 +133,6 @@ else()
+@@ -134,7 +142,6 @@ else()
          "2s2h/Extractor/*.hpp"
      )
  endif()
@@ -781,7 +787,7 @@ index d9f7f09c5..f3c80003e 100644
  # src (decomp) {{{
  file(GLOB_RECURSE src__ RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.c" "src/*.h")
  
-@@ -178,6 +184,24 @@ set(ALL_FILES
+@@ -186,6 +193,27 @@ set(ALL_FILES
  ################################################################################
  add_executable(${PROJECT_NAME} ${ALL_FILES})
  
@@ -800,13 +806,16 @@ index d9f7f09c5..f3c80003e 100644
 +        COMMAND ${CMAKE_COMMAND} -E copy_if_different
 +            "${CMAKE_BINARY_DIR}/gamecontrollerdb.txt"
 +            "$<TARGET_FILE_DIR:2ship>/gamecontrollerdb.txt"
++        COMMAND ${CMAKE_COMMAND} -E copy_if_different
++            "${MASKPAD_CA_BUNDLE}"
++            "$<TARGET_FILE_DIR:2ship>/cacert-bundle.crt"
 +    )
 +endif()
 +
  if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
  use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
  endif()
-@@ -196,6 +220,47 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+@@ -210,6 +238,47 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
          XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
          OUTPUT_NAME "2s2h-macos"
      )
@@ -854,7 +863,33 @@ index d9f7f09c5..f3c80003e 100644
  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
  	set_target_properties(${PROJECT_NAME} PROPERTIES
  	OUTPUT_NAME "2s2h.elf"
-@@ -265,6 +330,17 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+@@ -237,7 +306,24 @@ endif()
+ find_package(SDL2)
+ set(SDL2-INCLUDE ${SDL2_INCLUDE_DIRS})
+ 
+-if (NOT SKIP_NETWORKING)
++if (NOT SKIP_NETWORKING AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
++    # MaskPad AP: Anchor and Sail need SDL2_net, which the iOS SDK does not provide. Build it statically
++    # against libultraship's SDL2 and expose it under the <SDL2/SDL_net.h> path that 2s2h/Network uses.
++    set(SDL2NET_INSTALL OFF CACHE BOOL "" FORCE)
++    set(SDL2NET_SAMPLES OFF CACHE BOOL "" FORCE)
++    set(_maskpad_shared_libs ${BUILD_SHARED_LIBS})
++    set(BUILD_SHARED_LIBS OFF)
++    FetchContent_Declare(
++        SDL2_net
++        GIT_REPOSITORY https://github.com/libsdl-org/SDL_net.git
++        GIT_TAG 904600c6133e0435d627ec1878bfdfeac414a899 # release-2.4.0
++    )
++    FetchContent_MakeAvailable(SDL2_net)
++    set(BUILD_SHARED_LIBS ${_maskpad_shared_libs})
++    set(SDL2_NET_COMPAT_INCLUDE_DIR "${CMAKE_BINARY_DIR}/maskpad-sdl2net-include")
++    file(COPY "${sdl2_net_SOURCE_DIR}/include/SDL_net.h" DESTINATION "${SDL2_NET_COMPAT_INCLUDE_DIR}/SDL2")
++    target_include_directories(SDL2_net INTERFACE "$<BUILD_INTERFACE:${SDL2_NET_COMPAT_INCLUDE_DIR}>")
++elseif (NOT SKIP_NETWORKING)
+     find_package(SDL2_net 2.2.0 REQUIRED)
+     set(SDL2-NET-INCLUDE ${SDL_NET_INCLUDE_DIRS})
+ endif()
+@@ -305,6 +391,17 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
  		"_CRT_SECURE_NO_WARNINGS;"
  		NOMINMAX
  	)
@@ -872,7 +907,7 @@ index d9f7f09c5..f3c80003e 100644
  elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
  	target_compile_definitions(${PROJECT_NAME} PRIVATE
  		"$<$<CONFIG:Debug>:"
-@@ -350,7 +426,7 @@ if(MSVC)
+@@ -389,7 +486,7 @@ if(MSVC)
  endif()
  
  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
@@ -881,7 +916,7 @@ index d9f7f09c5..f3c80003e 100644
          target_compile_options(${PROJECT_NAME} PRIVATE
              -Wall -Wextra -Wno-error
              -Wno-return-type
-@@ -467,6 +543,7 @@ SKIP_PRECOMPILE_HEADERS ON
+@@ -506,6 +603,7 @@ SKIP_PRECOMPILE_HEADERS ON
  ################################################################################
  # Precompiled Headers
  ################################################################################
@@ -889,7 +924,7 @@ index d9f7f09c5..f3c80003e 100644
  target_precompile_headers(${PROJECT_NAME} PRIVATE
      "$<$<COMPILE_LANGUAGE:CXX>:<libultraship/bridge/consolevariablebridge.h$<ANGLE-R>>"
      "$<$<COMPILE_LANGUAGE:CXX>:<ship/Context.h$<ANGLE-R>>"
-@@ -494,6 +571,37 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
+@@ -533,6 +631,37 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
      "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/include/functions.h>"
      "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/include/variables.h>"
  )
@@ -927,7 +962,7 @@ index d9f7f09c5..f3c80003e 100644
  
  # MSVC only: the header is expensive to parse there, few sources include it, and MSVC's PCH load
  # barely grows with content. On Clang the parse is cheap by comparison and the bigger PCH is paid
-@@ -594,6 +702,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+@@ -633,6 +762,23 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
      target_include_directories(${PROJECT_NAME} PRIVATE
          ${DEVKITPRO}/portlibs/wiiu/include/
      )
@@ -939,6 +974,7 @@ index d9f7f09c5..f3c80003e 100644
 +        "ZAPDLib;"
 +        SDL2::SDL2-static
 +        SDL2::SDL2main
++        SDL2_net::SDL2_net-static
 +        Ogg::ogg
 +        Vorbis::vorbis
 +        Vorbis::vorbisenc
@@ -950,8 +986,8 @@ index d9f7f09c5..f3c80003e 100644
  else()
      find_package(SDL2)
      set(THREADS_PREFER_PTHREAD_FLAG ON)
-@@ -620,7 +744,7 @@ else()
- 
+@@ -678,7 +824,7 @@ if (BUILD_ARCHIPELAGO AND NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+     endif()
  endif()
  
 -if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin|NintendoSwitch|CafeOS")
@@ -959,7 +995,7 @@ index d9f7f09c5..f3c80003e 100644
  INSTALL(TARGETS 2ship DESTINATION . COMPONENT 2s2h)
  endif()
  
-@@ -629,15 +753,37 @@ INSTALL(FILES $<TARGET_PDB_FILE:2ship> DESTINATION ./debug COMPONENT 2s2h)
+@@ -687,15 +833,37 @@ INSTALL(FILES $<TARGET_PDB_FILE:2ship> DESTINATION ./debug COMPONENT 2s2h)
  INSTALL(FILES ${CMAKE_BINARY_DIR}/mm/2ship.o2r DESTINATION . COMPONENT 2s2h)
  endif()
  
@@ -1062,7 +1098,7 @@ index c024214e8..ebb45447b 100644
 +    return 0;
  }
 diff --git a/mm/src/code/z_parameter.c b/mm/src/code/z_parameter.c
-index 7c66e0df7..75942d4be 100644
+index f2c1b848c..f2a313a98 100644
 --- a/mm/src/code/z_parameter.c
 +++ b/mm/src/code/z_parameter.c
 @@ -25,6 +25,12 @@
@@ -1536,7 +1572,7 @@ index 7c66e0df7..75942d4be 100644
  
      gSPSegment(OVERLAY_DISP++, 0x02, interfaceCtx->parameterSegment);
 diff --git a/mm/src/code/z_play.c b/mm/src/code/z_play.c
-index fa4654750..9dbee6a35 100644
+index 7ac9322a6..cc07e0332 100644
 --- a/mm/src/code/z_play.c
 +++ b/mm/src/code/z_play.c
 @@ -4,6 +4,9 @@

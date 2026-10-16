@@ -6,8 +6,8 @@ SOURCE="$ROOT/sources/2ship2harkinian"
 VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/version.json")"
 ARTIFACT="${1:-}"
 # No argument: also check this version's packaged IPA when it exists.
-if [ -z "$ARTIFACT" ] && [ -f "$ROOT/artifacts/MaskPad-$VERSION-unsigned.ipa" ]; then
-    ARTIFACT="$ROOT/artifacts/MaskPad-$VERSION-unsigned.ipa"
+if [ -z "$ARTIFACT" ] && [ -f "$ROOT/artifacts/MaskPadAP-$VERSION-unsigned.ipa" ]; then
+    ARTIFACT="$ROOT/artifacts/MaskPadAP-$VERSION-unsigned.ipa"
 fi
 IPA=""
 source "$ROOT/scripts/pins.sh"
@@ -49,10 +49,11 @@ if [ -n "$ARTIFACT" ]; then
     fi
 
     test -x "$APP/MaskPad"
-    test "$(plutil -extract CFBundleDisplayName raw "$APP/Info.plist")" = "MaskPad"
+    test "$(plutil -extract CFBundleDisplayName raw "$APP/Info.plist")" = "MaskPad AP"
     test "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" = \
-        "${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpad}"
+        "${MASKPAD_BUNDLE_ID:-cl.mtbolanoss.maskpadap}"
     test -s "$APP/2ship.o2r"
+    test -s "$APP/cacert-bundle.crt"
     unzip -tq "$APP/2ship.o2r" >/dev/null
     if unzip -Z1 "$APP/2ship.o2r" |
         grep -Eiq '\.(z64|n64|v64|rom)$|(^|/)mm\.o2r$|\.otr$'; then
